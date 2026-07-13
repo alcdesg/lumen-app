@@ -26,6 +26,12 @@ class ApplicationController {
         transactions: []
       }
     };
+
+    // Initialize Theme preference
+    const savedTheme = localStorage.getItem("lumen_theme") || "dark";
+    if (savedTheme === "light") {
+      document.body.classList.add("light-theme");
+    }
   }
 
   async start() {
@@ -46,6 +52,9 @@ class ApplicationController {
 
     // 5.5 Update Tasks Badge counter
     this.updateTasksBadge();
+
+    // 5.8 Update Theme Toggle UI
+    this.updateThemeUI();
 
     // 6. Initial Routing
     this.router();
@@ -356,6 +365,17 @@ class ApplicationController {
 
     toggleExpense.addEventListener('click', () => setQuickAddType('expense'));
     toggleIncome.addEventListener('click', () => setQuickAddType('income'));
+
+    // Theme Toggle Click Handler
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const isLight = document.body.classList.contains('light-theme');
+        localStorage.setItem('lumen_theme', isLight ? 'light' : 'dark');
+        this.updateThemeUI();
+      });
+    }
   }
 
   /**
@@ -423,6 +443,24 @@ class ApplicationController {
       } else {
         badgeEl.style.display = "none";
       }
+    }
+  }
+
+  updateThemeUI() {
+    const themeIcon = document.getElementById("theme-icon");
+    const themeText = document.getElementById("theme-text");
+    if (!themeIcon || !themeText) return;
+
+    const isLight = document.body.classList.contains("light-theme");
+    
+    if (isLight) {
+      themeText.textContent = "Modo Escuro";
+      // Moon Icon path
+      themeIcon.innerHTML = `<path d="M12.3 22h-.1c-5.4 0-10-4.6-10-10 0-4.3 2.9-8.1 7.1-9.2.6-.2 1.3.3 1.2 1-.2 1.4.1 2.9.8 4.1 1.2 2.2 3.4 3.7 5.9 3.9.7.1 1.1.8.8 1.4-1.2 3.8-4.9 6.8-8.8 6.8z" fill="currentColor"/>`;
+    } else {
+      themeText.textContent = "Modo Claro";
+      // Sun Icon path
+      themeIcon.innerHTML = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41zm-12.37 12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41z" fill="currentColor"/>`;
     }
   }
 }

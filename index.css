@@ -44,6 +44,36 @@
   --border-radius-sm: 4px;
 }
 
+/* Light Theme Variables */
+body.light-theme {
+  --bg-base: hsl(210, 20%, 98%);
+  --bg-sidebar: hsl(210, 20%, 94%);
+  --bg-card: hsla(210, 30%, 100%, 0.85);
+  --bg-card-hover: hsla(210, 30%, 95%, 0.95);
+  --border-color: hsla(210, 20%, 85%, 0.7);
+  --border-focus: hsla(250, 84%, 60%, 0.8);
+  
+  --accent-primary: hsl(250, 84%, 60%);
+  --accent-primary-glow: hsla(250, 84%, 60%, 0.08);
+  --accent-primary-hover: hsl(250, 84%, 53%);
+  --accent-secondary: hsl(190, 95%, 40%);
+  
+  --color-income: hsl(142, 70%, 35%);
+  --color-income-bg: hsla(142, 69%, 40%, 0.1);
+  --color-expense: hsl(350, 80%, 48%);
+  --color-expense-bg: hsla(350, 89%, 50%, 0.1);
+  
+  --intensity-v-comfortable: hsla(142, 69%, 58%, 0.35);
+  --intensity-comfortable: hsla(142, 69%, 58%, 0.18);
+  --intensity-warning: hsla(38, 92%, 50%, 0.22);
+  --intensity-critical: hsla(16, 90%, 60%, 0.28);
+  --intensity-negative: hsla(350, 89%, 60%, 0.35);
+
+  --text-main: hsl(222, 47%, 12%);
+  --text-secondary: hsl(215, 16%, 35%);
+  --text-muted: hsl(215, 12%, 55%);
+}
+
 /* Global Reset & Base */
 * {
   box-sizing: border-box;
@@ -375,15 +405,21 @@ button, input, select, textarea {
 }
 
 .modal-card {
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border-color);
+  background: linear-gradient(135deg, hsl(222, 47%, 12%) 0%, hsl(222, 47%, 7%) 100%);
+  border: 1px solid hsla(217, 33%, 32%, 0.6);
   width: 500px;
   max-width: 90%;
   border-radius: var(--border-radius-lg);
   padding: 24px;
   transform: scale(0.95);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body.light-theme .modal-card {
+  background: linear-gradient(135deg, hsl(210, 30%, 100%) 0%, hsl(210, 25%, 97%) 100%);
+  border: 1px solid hsla(210, 20%, 80%, 0.85);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .modal-overlay.active .modal-card {
@@ -441,8 +477,8 @@ label {
 }
 
 input, select {
-  background-color: var(--bg-base);
-  border: 1px solid var(--border-color);
+  background-color: hsla(222, 47%, 9%, 0.85);
+  border: 1px solid hsla(217, 33%, 30%, 0.7);
   padding: 10px 12px;
   border-radius: var(--border-radius-md);
   font-size: 14px;
@@ -451,9 +487,15 @@ input, select {
   width: 100%;
 }
 
+body.light-theme input, body.light-theme select {
+  background-color: hsl(0, 0%, 100%);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
 input:focus, select:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 8px var(--accent-primary-glow);
+  box-shadow: 0 0 0 2px var(--accent-primary-glow);
 }
 
 /* Flex Toggle Despesa/Receita */
