@@ -1,0 +1,9 @@
+# Ignorar arquivos locais de dados financeiros (OneDrive Sync)
+accounts.json
+transactions.json
+categories.json
+batches.json
+settings.json
+
+# Ignorar pastas de backup locais do sistema
+backups/

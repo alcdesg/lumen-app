@@ -65,15 +65,21 @@ class ImportPage {
                   <td>De qual conta de origem é o saldo.</td>
                   <td><code>Conta Corrente</code>, <code>Reserva</code></td>
                 </tr>
+                <tr>
+                  <td><strong>Responsável</strong></td>
+                  <td>Texto (Opcional)</td>
+                  <td>Membro do casal proprietário da transação. Se omitido, assume "Casal".</td>
+                  <td><code>Paula</code>, <code>Alcides</code> ou <code>Casal</code></td>
+                </tr>
               </tbody>
             </table>
           </div>
 
           <h5 style="font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Exemplo de arquivo (Copiar e colar no Bloco de Notas e salvar como .csv):</h5>
-          <pre style="background-color:var(--bg-base); padding:10px 12px; border-radius:var(--border-radius-md); font-family:monospace; font-size:11px; color:var(--accent-secondary); border:1px solid var(--border-color); overflow-x:auto;">Data;Descricao;Valor;Categoria;Conta
-13/07/2026;Salário Paula;4500,00;Salário;Conta Corrente
-14/07/2026;Aluguel Mensal;-2500,00;Moradia;Conta Corrente
-15/07/2026;Supermercado;-320,50;Alimentação;Conta Corrente</pre>
+          <pre style="background-color:var(--bg-base); padding:10px 12px; border-radius:var(--border-radius-md); font-family:monospace; font-size:11px; color:var(--accent-secondary); border:1px solid var(--border-color); overflow-x:auto;">Data;Descricao;Valor;Categoria;Conta;Responsável
+13/07/2026;Salário Paula;4500,00;Salário;Conta Corrente;Paula
+14/07/2026;Aluguel Mensal;-2500,00;Moradia;Conta Corrente;Casal
+15/07/2026;Supermercado;-320,50;Alimentação;Conta Corrente;Alcides</pre>
         </div>
       `;
     } else if (importState.status === 'validating') {
@@ -107,6 +113,16 @@ class ImportPage {
           const sign = row.amount > 0 ? '+' : '-';
           const formattedDate = row.date.split('-').reverse().join('/');
 
+          // Member badge for preview
+          let memberBadge = '';
+          if (row.member === 'Paula') {
+            memberBadge = `<span class="badge" style="background-color:hsla(320, 80%, 60%, 0.15); color:hsl(320, 80%, 75%); border:1px solid hsla(320, 80%, 60%, 0.25);">Paula</span>`;
+          } else if (row.member === 'Alcides') {
+            memberBadge = `<span class="badge" style="background-color:hsla(200, 85%, 55%, 0.15); color:hsl(200, 85%, 70%); border:1px solid hsla(200, 85%, 55%, 0.25);">Alcides</span>`;
+          } else {
+            memberBadge = `<span class="badge" style="background-color:var(--bg-base); color:var(--text-secondary); border:1px solid var(--border-color);">Casal</span>`;
+          }
+
           previewTableRows += `
             <tr>
               <td>L${row.row}</td>
@@ -122,6 +138,7 @@ class ImportPage {
                   ${row.categoryName} ${!catExists ? '<span style="color:var(--accent-primary); font-size:9px; font-weight:700;">(Nova)</span>' : ''}
                 </span>
               </td>
+              <td>${memberBadge}</td>
               <td class="${amountClass}" style="font-weight: 700; font-family: 'Inter', sans-serif;">
                 ${sign}${formattedAmount}
               </td>
@@ -150,6 +167,7 @@ class ImportPage {
                     <th>Descrição</th>
                     <th style="width: 150px;">Conta Mapeada</th>
                     <th style="width: 150px;">Categoria Mapeada</th>
+                    <th style="width: 110px;">Responsável</th>
                     <th style="width: 130px;">Valor</th>
                   </tr>
                 </thead>
