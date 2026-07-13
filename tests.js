@@ -271,6 +271,81 @@ test("CsvParser - Importação com coluna de Responsável", () => {
   expect(parsed.transactions[2].member).toBe('Casal');
 });
 
+test("LumenApp - getPendingPlannedTransactions & reconcileTransaction", () => {
+  const app = new LumenApp(new MockStorage());
+  app.accounts.push(new Account({ id: 'a1', name: 'Banco A', initial_balance: 1000 }));
+  app.categories.push(new Category({ id: 'c1', name: 'Luz', type: 'expense' }));
+
+  // Add 1 past planned, 1 future planned, 1 past confirmed
+  app.transactions.push(new Transaction({ id: 't1', account_id: 'a1', category_id: 'c1', description: 'Luz planejada', amount: -200, date: '2026-07-10', status: 'planned' }));
+  app.transactions.push(new Transaction({ id: 't2', account_id: 'a1', category_id: 'c1', description: 'Luz futura', amount: -200, date: '2026-07-20', status: 'planned' }));
+  app.transactions.push(new Transaction({ id: 't3', account_id: 'a1', category_id: 'c1', description: 'Luz paga', amount: -180, date: '2026-07-09', status: 'confirmed' }));
+
+  const pending = app.getPendingPlannedTransactions('2026-07-13');
+  expect(pending.length).toBe(1);
+  expect(pending[0].id).toBe('t1');
+
+  // Reconcile pending
+  const reconciled = app.reconcileTransaction('t1', { amount: -215.50, date: '2026-07-11', status: 'confirmed' });
+  expect(reconciled.version).toBe(2);
+  expect(reconciled.status).toBe('confirmed');
+  expect(reconciled.amount).toBe(-215.50);
+  expect(reconciled.date).toBe('2026-07-11');
+  
+  // The original version should be inactive
+  const original = app.transactions.find(t => t.id === 't1' && t.version === 1);
+  expect(original.is_active).toBe(false);
+  
+  // The active transaction list should not have t1 as planned anymore
+  expect(app.getPendingPlannedTransactions('2026-07-13').length).toBe(0);
+});
+
+test("LumenApp - findMatchingPlannedTransaction & CSV reconciliation flow", async () => {
+  const app = new LumenApp(new MockStorage());
+  app.accounts.push(new Account({ id: 'a1', name: 'Itaú', initial_balance: 1000 }));
+  app.categories.push(new Category({ id: 'c1', name: 'Alimentação', type: 'expense' }));
+
+  // Pre-existing planned expense
+  app.transactions.push(new Transaction({ id: 't-planned', account_id: 'a1', category_id: 'c1', description: 'Supermercado Mensal', amount: -500, date: '2026-07-12', status: 'planned' }));
+
+  const csvRowMatch = {
+    row: 2,
+    date: '2026-07-13', // +1 day (within +/- 5 days)
+    description: 'Mercado Pão de Açúcar',
+    amount: -510.50, // within 20% of -500
+    categoryName: 'Alimentação',
+    accountName: 'Itaú'
+  };
+
+  const match = app.findMatchingPlannedTransaction(csvRowMatch);
+  expect(match !== null).toBe(true);
+  expect(match.id).toBe('t-planned');
+
+  // Import with reconciliation
+  const csvText = `Data;Descrição;Valor;Categoria;Conta\n13/07/2026;Mercado Pão de Açúcar;-510,50;Alimentação;Itaú`;
+  const reconciliations = { 2: 't-planned' };
+
+  const res = await app.importTransactions(csvText, "fatura.csv", "2026-07-13", reconciliations);
+  expect(res.success).toBe(true);
+
+  // Check that the planned transaction was updated to version 2 (confirmed)
+  const activeTx = app.getActiveTransaction('t-planned');
+  expect(activeTx.version).toBe(2);
+  expect(activeTx.status).toBe('confirmed');
+  expect(activeTx.amount).toBe(-510.5);
+
+  // Check that no duplicate was created
+  expect(app.getActiveTransactions().length).toBe(1);
+
+  // Roll back the batch
+  await app.rollbackImportBatch(res.batchId);
+  // Reconciled transaction should revert back to planned version 1!
+  const rolledBackActive = app.getActiveTransaction('t-planned');
+  expect(rolledBackActive.version).toBe(1);
+  expect(rolledBackActive.status).toBe('planned');
+  expect(rolledBackActive.amount).toBe(-500);
+});
+
 
 // --- Execution Logic ---
 async function runTests() {

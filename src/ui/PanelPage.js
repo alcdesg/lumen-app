@@ -146,10 +146,25 @@ class PanelPage {
     const fmtCasalInc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(casalIncome);
     const fmtCasalExp = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(casalExpense);
 
+    // Calculate overdue tasks to show disclaimer
+    const pendingTxsCount = app.getPendingPlannedTransactions(today).length;
+    let pendingAlertHtml = '';
+    if (pendingTxsCount > 0) {
+      pendingAlertHtml = `
+        <div class="pending-tasks-alert animate-fade-in" style="background-color: hsla(38, 100%, 50%, 0.08); border: 1px solid hsla(38, 100%, 50%, 0.2); border-radius: var(--border-radius-md); padding: 12px 16px; color: #f59e0b; font-size: 13px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; grid-column: 1 / -1; margin-bottom: 8px;">
+          <span>⚠️ Existem <strong>${pendingTxsCount}</strong> lançamentos previstos vencidos que podem comprometer a precisão da sua projeção de caixa.</span>
+          <a href="#tasks" style="color: var(--accent-secondary); font-weight: 600; text-decoration: none; border-bottom: 1px dashed var(--accent-secondary); margin-left: 12px; font-size: 12px;">Visualizar Pendências</a>
+        </div>
+      `;
+    }
+
     // 7. Return Page HTML
     return `
       <div class="panel-grid animate-fade-in">
         
+        <!-- Pending Tasks Alert -->
+        ${pendingAlertHtml}
+
         <!-- Decision Banner -->
         <div class="decision-card">
           ${decisionHtml}

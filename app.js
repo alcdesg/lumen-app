@@ -44,6 +44,9 @@ class ApplicationController {
     // 5. Update OneDrive UI pill indicator
     this.updateOneDriveUI();
 
+    // 5.5 Update Tasks Badge counter
+    this.updateTasksBadge();
+
     // 6. Initial Routing
     this.router();
     window.addEventListener('hashchange', () => this.router());
@@ -149,6 +152,10 @@ class ApplicationController {
       case 'panel':
         html = PanelPage.render(this.app, this.state);
         pageClass = PanelPage;
+        break;
+      case 'tasks':
+        html = TasksPage.render(this.app, this.state);
+        pageClass = TasksPage;
         break;
       case 'calendar':
         html = CalendarPage.render(this.app, this.state);
@@ -403,6 +410,20 @@ class ApplicationController {
         catOptions += `<option value="${c.id}">${c.name}</option>`;
       });
     catSelect.innerHTML = catOptions;
+  }
+
+  updateTasksBadge() {
+    const today = "2026-07-13"; // Baseline date
+    const pendingCount = this.app.getPendingPlannedTransactions(today).length;
+    const badgeEl = document.getElementById("tasks-badge");
+    if (badgeEl) {
+      if (pendingCount > 0) {
+        badgeEl.textContent = pendingCount;
+        badgeEl.style.display = "inline-block";
+      } else {
+        badgeEl.style.display = "none";
+      }
+    }
   }
 }
 

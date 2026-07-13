@@ -210,12 +210,89 @@ class LumenApp {
       .sort((a, b) => a.version - b.version);
   }
 
+  /**
+   * Gets all planned transactions that are overdue (date <= today).
+   */
+  getPendingPlannedTransactions(today) {
+    return this.getActiveTransactions().filter(t => t.status === 'planned' && t.date <= today);
+  }
+
+  /**
+   * Finds a likely matching planned transaction for a given CSV row.
+   * Matching criteria: same account, same category, date within +/- 5 days, amount within 20% tolerance, same status 'planned'.
+   */
+  findMatchingPlannedTransaction(row) {
+    const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    if (!acc) return null;
+
+    const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
+    if (!cat) return null;
+
+    const rowAmount = Number(row.amount);
+    // Parse YYYY-MM-DD to date object
+    const rowDate = new Date(row.date + 'T00:00:00');
+
+    return this.getActiveTransactions().find(t => {
+      if (t.status !== 'planned') return false;
+      if (t.account_id !== acc.id) return false;
+      if (t.category_id !== cat.id) return false;
+
+      // Check date tolerance: +/- 5 days
+      const tDate = new Date(t.date + 'T00:00:00');
+      const diffTime = Math.abs(rowDate - tDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 5) return false;
+
+      // Check amount: same sign, within 20% tolerance of row value
+      const tAmount = t.amount;
+      if (Math.sign(tAmount) !== Math.sign(rowAmount)) return false;
+      
+      const tolerance = Math.abs(rowAmount) * 0.20;
+      if (Math.abs(tAmount - rowAmount) > tolerance) return false;
+
+      return true;
+    });
+  }
+
+  /**
+   * Reconciles a planned transaction by updating it to confirmed and setting final values.
+   */
+  reconcileTransaction(id, { amount, date, description, status, import_batch_id }) {
+    const activeTx = this.getActiveTransaction(id);
+    if (!activeTx) {
+      throw new Error("Transação planejada ativa não encontrada para conciliação.");
+    }
+    if (activeTx.status !== 'planned') {
+      throw new Error("Apenas transações com status 'Planejado' podem ser reconciliadas.");
+    }
+
+    const updatedFields = {
+      status: status || 'confirmed',
+      amount: amount !== undefined ? amount : activeTx.amount,
+      date: date !== undefined ? date : activeTx.date,
+      description: description !== undefined ? description : activeTx.description,
+      import_batch_id: import_batch_id !== undefined ? import_batch_id : activeTx.import_batch_id
+    };
+
+    // Create a new version
+    const newVersionTx = activeTx.createNewVersion(updatedFields);
+    newVersionTx.validate();
+
+    // Inactivate old version
+    activeTx.is_active = false;
+    activeTx.replaced_by_version = newVersionTx.version;
+    activeTx.updated_at = new Date().toISOString();
+
+    this.transactions.push(newVersionTx);
+    return newVersionTx;
+  }
+
   // --- CSV Batch Import and Rollback ---
 
   /**
-   * Imports a CSV batch, automatically mapping and creating accounts/categories.
+   * Imports a CSV batch, automatically mapping, reconciling, and creating accounts/categories.
    */
-  async importTransactions(csvText, filename, todayStr) {
+  async importTransactions(csvText, filename, todayStr, reconciliations = {}) {
     const parsed = CsvParser.parse(csvText);
     if (parsed.errors.length > 0) {
       return { success: false, errors: parsed.errors };
@@ -246,28 +323,41 @@ class LumenApp {
 
     // Add each imported transaction
     importedTxs.forEach(row => {
-      const account_id = getOrCreateAccount(row.accountName);
-      const category_id = getOrCreateCategory(row.categoryName, row.amount);
-      
-      // Auto-status: confirmed if in the past or today, planned if future
       const status = row.date <= todayStr ? 'confirmed' : 'planned';
+      const reconciledTxId = reconciliations[row.row];
 
-      const tx = new Transaction({
-        account_id,
-        category_id,
-        description: row.description,
-        amount: row.amount,
-        date: row.date,
-        status,
-        version: 1,
-        is_active: true,
-        import_batch_id: batchId,
-        member: row.member || 'Casal'
-      });
+      if (reconciledTxId) {
+        // Reconcile pre-existing planned transaction instead of duplicating
+        const reconciled = this.reconcileTransaction(reconciledTxId, {
+          amount: row.amount,
+          date: row.date,
+          description: row.description,
+          status,
+          import_batch_id: batchId
+        });
+        txIdsInBatch.push(reconciled.id);
+      } else {
+        // Create new transaction
+        const account_id = getOrCreateAccount(row.accountName);
+        const category_id = getOrCreateCategory(row.categoryName, row.amount);
 
-      tx.validate();
-      this.transactions.push(tx);
-      txIdsInBatch.push(tx.id);
+        const tx = new Transaction({
+          account_id,
+          category_id,
+          description: row.description,
+          amount: row.amount,
+          date: row.date,
+          status,
+          version: 1,
+          is_active: true,
+          import_batch_id: batchId,
+          member: row.member || 'Casal'
+        });
+
+        tx.validate();
+        this.transactions.push(tx);
+        txIdsInBatch.push(tx.id);
+      }
     });
 
     // Create the batch record
@@ -290,26 +380,39 @@ class LumenApp {
   }
 
   /**
-   * Rolls back a CSV batch import, soft-deleting all imported transactions.
+   * Rolls back a CSV batch import, soft-deleting new transactions and restoring reconciled ones.
    */
   async rollbackImportBatch(batchId) {
     const batch = this.batches.find(b => b.id === batchId);
     if (!batch) throw new Error("Lote de importação não encontrado.");
     if (batch.status === 'rolled_back') throw new Error("Este lote de importação já foi revertido.");
 
-    // Soft-delete each transaction in the batch
+    // Roll back each transaction in the batch
     batch.transaction_ids.forEach(txId => {
       const activeTx = this.getActiveTransaction(txId);
       if (activeTx) {
-        // Deactivate active transaction
-        activeTx.is_active = false;
-        activeTx.replaced_by_version = activeTx.version + 1;
-        activeTx.updated_at = new Date().toISOString();
+        // Check if there was a previous version of this transaction that was NOT created in this batch
+        const prevVersion = this.transactions.find(t => t.id === txId && t.version === activeTx.version - 1);
+        
+        if (prevVersion && prevVersion.import_batch_id !== batchId) {
+          // Reactivate the previous planned version!
+          activeTx.is_active = false;
+          activeTx.replaced_by_version = null;
+          activeTx.updated_at = new Date().toISOString();
 
-        // Create rollback version
-        const rollbackTx = activeTx.createNewVersion({ is_deleted: true });
-        rollbackTx.is_active = false; // Inactive
-        this.transactions.push(rollbackTx);
+          prevVersion.is_active = true;
+          prevVersion.replaced_by_version = null;
+          prevVersion.updated_at = new Date().toISOString();
+        } else {
+          // Soft-delete the imported transaction (create a deleted version)
+          activeTx.is_active = false;
+          activeTx.replaced_by_version = activeTx.version + 1;
+          activeTx.updated_at = new Date().toISOString();
+
+          const rollbackTx = activeTx.createNewVersion({ is_deleted: true });
+          rollbackTx.is_active = false; // Inactive
+          this.transactions.push(rollbackTx);
+        }
       }
     });
 

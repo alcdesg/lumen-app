@@ -123,11 +123,28 @@ class ImportPage {
             memberBadge = `<span class="badge" style="background-color:var(--bg-base); color:var(--text-secondary); border:1px solid var(--border-color);">Casal</span>`;
           }
 
+          // Try to find a matching planned transaction in the database
+          const matchedPlanned = app.findMatchingPlannedTransaction(row);
+          let actionCell = '';
+          let descHtml = `style="font-weight:600;"`;
+          let descSubtitle = '';
+
+          if (matchedPlanned) {
+            actionCell = `<input type="checkbox" class="reconcile-checkbox" data-row-num="${row.row}" data-planned-id="${matchedPlanned.id}" checked style="cursor:pointer; width:16px; height:16px; accent-color:var(--accent-secondary);">`;
+            descSubtitle = `<div style="font-size:10px; color:var(--accent-secondary); margin-top:2px; font-weight:normal;">🔗 Substitui: ${matchedPlanned.description} (Previsto)</div>`;
+          } else {
+            actionCell = `<span style="opacity: 0.3;" title="Nenhuma previsão correspondente encontrada">—</span>`;
+          }
+
           previewTableRows += `
             <tr>
+              <td style="text-align: center; vertical-align: middle;">${actionCell}</td>
               <td>L${row.row}</td>
               <td>${formattedDate}</td>
-              <td>${row.description}</td>
+              <td>
+                <div ${descHtml}>${row.description}</div>
+                ${descSubtitle}
+              </td>
               <td>
                 <span class="account-tag" style="background-color: var(--bg-base); border: 1px solid var(--border-color);">
                   ${row.accountName} ${!accExists ? '<span style="color:var(--accent-secondary); font-size:9px; font-weight:700;">(Nova)</span>' : ''}
@@ -162,6 +179,7 @@ class ImportPage {
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th style="width: 70px; text-align: center;">Conciliar</th>
                     <th style="width: 50px;">Linha</th>
                     <th style="width: 100px;">Data</th>
                     <th>Descrição</th>
@@ -338,11 +356,25 @@ class ImportPage {
         const text = state.importState.fileText;
         const filename = state.importState.filename;
         
+        // Scan the DOM for selected reconciliations
+        const reconciliations = {};
+        const checkboxes = document.querySelectorAll(".reconcile-checkbox:checked");
+        checkboxes.forEach(cb => {
+          const rowNum = Number(cb.getAttribute("data-row-num"));
+          const plannedId = cb.getAttribute("data-planned-id");
+          reconciliations[rowNum] = plannedId;
+        });
+
         try {
-          const res = await app.importTransactions(text, filename, todayStr);
+          const res = await app.importTransactions(text, filename, todayStr, reconciliations);
           if (res.success) {
             alert(`Lote "${filename}" importado com sucesso! ${res.count} transações cadastradas.`);
             state.importState = { status: 'idle', errors: [], transactions: [], filename: '', fileText: '' };
+            
+            // Update sidebar badge
+            if (typeof appInstance.updateTasksBadge === 'function') {
+              appInstance.updateTasksBadge();
+            }
             appInstance.renderActivePage(); // Return to idle/refresh batch history
           } else {
             alert("Erro durante importação: " + res.errors.join("\n"));
@@ -364,6 +396,10 @@ class ImportPage {
           try {
             await app.rollbackImportBatch(batchId);
             alert("Saldos revertidos com sucesso!");
+            
+            if (typeof appInstance.updateTasksBadge === 'function') {
+              appInstance.updateTasksBadge();
+            }
             appInstance.renderActivePage(); // Reload history
           } catch (err) {
             alert(err.message);
