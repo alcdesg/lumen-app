@@ -1510,3 +1510,60 @@ input:focus, select:focus {
   text-align: left;
   flex-shrink: 0;
 }
+
+/* ----------------------------------------------- */
+/* THEME CONTRAST & ACCESSIBILITY OVERRIDES        */
+/* ----------------------------------------------- */
+
+/* Chromium date picker calendar indicator */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: var(--transition-smooth);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+body.light-theme input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  opacity: 0.7;
+}
+
+/* Light Theme Component Overrides */
+body.light-theme .calendar-day {
+  background-color: hsla(210, 20%, 90%, 0.45);
+}
+
+body.light-theme .calendar-day:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .tx-row-item {
+  background-color: hsla(210, 20%, 96%, 0.85);
+}
+
+body.light-theme .log-content {
+  background-color: hsla(210, 20%, 96%, 0.7);
+}
+
+body.light-theme .menu-item:hover {
+  background-color: hsla(210, 20%, 88%, 0.6);
+}
+
+body.light-theme .menu-item.active {
+  background-color: hsla(250, 84%, 60%, 0.08);
+  border: 1px solid hsla(250, 84%, 60%, 0.2);
+}
+
+body.light-theme .btn-secondary:hover {
+  background-color: hsla(210, 20%, 90%, 0.5);
+}
+
+body.light-theme .btn-action-icon:hover {
+  background-color: hsla(210, 20%, 90%, 0.8);
+  border-color: var(--border-color);
+}
+
