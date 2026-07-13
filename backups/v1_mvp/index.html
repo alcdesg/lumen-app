@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumen — Decisões Financeiras para Casais</title>
+  <!-- Modern Geometric Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Setup / Login & OneDrive Sync Lock Overlay -->
+  <div class="setup-overlay active" id="setup-screen">
+    <div class="setup-card">
+      <div class="setup-header">
+        <span class="logo-dot" style="width:12px; height:12px; box-shadow:0 0 16px var(--accent-primary);"></span>
+        <h2 style="font-size: 24px; font-weight:700;">Lumen</h2>
+        <span class="logo-tag">Mesa de Controle</span>
+      </div>
+      
+      <p class="setup-intro">Bem-vindos! Para começar, identifique o perfil ativo e conecte o aplicativo à pasta segura do seu OneDrive.</p>
+      
+      <!-- User Selection -->
+      <div class="setup-section">
+        <h3>1. Quem está usando o Lumen agora?</h3>
+        <div class="user-select-grid">
+          <button type="button" class="user-avatar-btn" id="btn-user-paula" data-user="Paula">
+            <div class="avatar-letter">P</div>
+            <span>Paula</span>
+          </button>
+          <button type="button" class="user-avatar-btn" id="btn-user-alcides" data-user="Alcides">
+            <div class="avatar-letter">A</div>
+            <span>Alcides</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- OneDrive Connection Section -->
+      <div class="setup-section" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+        <h3>2. Conexão do OneDrive</h3>
+        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">
+          O navegador requer autorização para ler/escrever dados nos arquivos locais do OneDrive. A conexão é configurada individualmente em cada computador de forma automática.
+        </p>
+        <button type="button" id="setup-connect-btn" class="btn btn-primary" style="width:100%; padding:12px; font-weight:600; font-size:14px;" disabled>
+          Conectar Pasta do OneDrive
+        </button>
+        
+        <div id="setup-status-msg" style="font-size: 11px; text-align: center; margin-top: 8px; color: var(--text-muted);">
+          Escolha um usuário acima para habilitar a conexão.
+        </div>
+      </div>
+
+      <div class="setup-footer" style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px; text-align:center;">
+        <button type="button" id="setup-skip-btn">Continuar no modo demonstração (apenas navegador)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main Layout Container -->
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation (Notion/Linear Inspired) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-dot"></span>
+          <h1>Lumen</h1>
+        </div>
+        <span class="logo-tag">MVP</span>
+      </div>
+
+      <nav class="sidebar-menu">
+        <a href="#panel" class="menu-item active" id="nav-panel">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          Painel Lumen
+        </a>
+        <a href="#calendar" class="menu-item" id="nav-calendar">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+          Calendário
+        </a>
+        <a href="#transactions" class="menu-item" id="nav-transactions">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2-.9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          Transações
+        </a>
+        <a href="#accounts" class="menu-item" id="nav-accounts">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1h-3.5c-.39-3.44-3.29-6.14-6.85-6.85L11.5 2zm0 15c-3.59 0-6.5-2.91-6.5-6.5S7.91 4 11.5 4 18 6.91 18 10.5h-5c-.55 0-1 .45-1 1v5.5h-.5z"/></svg>
+          Contas & Categorias
+        </a>
+        <a href="#import" class="menu-item" id="nav-import">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          Importar CSV
+        </a>
+        <a href="#history" class="menu-item" id="nav-history">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.53.85-1.07-3.63-2.16V8h-1.5z"/></svg>
+          Auditoria & Versões
+        </a>
+        <a href="#help" class="menu-item" id="nav-help">
+          <svg class="menu-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+          Guia do Usuário
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="tests.html" target="_blank" class="tests-link">
+          <svg class="tests-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          Suíte de Testes
+        </a>
+        <!-- OneDrive Sync Status Pill -->
+        <div class="onedrive-pill disconnected" id="onedrive-sync-pill">
+          <div class="pill-dot"></div>
+          <span class="pill-text">Local (Offline)</span>
+          <button class="connect-btn" id="connect-onedrive-btn" title="Conectar pasta do OneDrive">Conectar</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="app-main">
+      <header class="app-header">
+        <div class="header-welcome">
+          <h2 id="header-user-welcome">Paula & Alcides</h2>
+          <p id="header-date">Segunda-feira, 13 de Julho de 2026</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="global-add-tx-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Nova Movimentação
+          </button>
+        </div>
+      </header>
+
+      <!-- Warning Demo Mode Banner -->
+      <div class="demo-warning-banner" id="demo-warning-bar" style="display:none;">
+        ⚠️ <strong>Modo de Demonstração Ativo</strong>: Seus dados estão sendo salvos apenas localmente no navegador e serão perdidos se você limpar o cache. Clique em "Conectar" no rodapé esquerdo para salvar e sincronizar com segurança no seu OneDrive.
+      </div>
+
+      <!-- View Wrapper for routing -->
+      <section class="content-body" id="content-view">
+        <!-- Loaded page elements go here -->
+      </section>
+    </main>
+
+  </div>
+
+  <!-- Global Quick-Add Modal (Optimized for <10 seconds insertion) -->
+  <div class="modal-overlay" id="quick-add-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Registrar Movimentação</h3>
+        <button class="close-modal-btn" id="close-quick-add-btn">
+          <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <form id="quick-add-form" class="modal-form">
+        <div class="form-row flex-toggle">
+          <button type="button" class="toggle-btn active-expense" id="toggle-expense" data-type="expense">Despesa</button>
+          <button type="button" class="toggle-btn" id="toggle-income" data-type="income">Receita</button>
+        </div>
+        
+        <div class="form-row">
+          <label for="tx-amount">Valor (R$)*</label>
+          <input type="number" id="tx-amount" step="0.01" placeholder="0,00" required autofocus autocomplete="off">
+        </div>
+
+        <div class="form-row">
+          <label for="tx-description">Descrição*</label>
+          <input type="text" id="tx-description" placeholder="Ex: Supermercado Semanal" required autocomplete="off">
+        </div>
+
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="tx-date">Data*</label>
+            <input type="date" id="tx-date" required>
+          </div>
+          <div class="form-row">
+            <label for="tx-status">Status*</label>
+            <select id="tx-status">
+              <option value="confirmed">Confirmado (Realizado)</option>
+              <option value="planned">Planejado (Previsto)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="tx-account">Conta*</label>
+            <select id="tx-account" required></select>
+          </div>
+          <div class="form-row">
+            <label for="tx-category">Categoria*</label>
+            <select id="tx-category" required></select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <span class="shortcut-tip">Dica: Enter envia</span>
+          <button type="button" class="btn btn-secondary" id="cancel-quick-add-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Core Scripts -->
+  <script src="src/domain/FinancialEngine.js"></script>
+  <script src="src/domain/Account.js"></script>
+  <script src="src/domain/Category.js"></script>
+  <script src="src/domain/Transaction.js"></script>
+  <script src="src/infrastructure/Storage.js"></script>
+  <script src="src/infrastructure/CsvParser.js"></script>
+  <script src="src/application/LumenApp.js"></script>
+  <script src="src/ui/PanelPage.js"></script>
+  <script src="src/ui/CalendarPage.js"></script>
+  <script src="src/ui/TransactionsPage.js"></script>
+  <script src="src/ui/AccountsPage.js"></script>
+  <script src="src/ui/ImportPage.js"></script>
+  <script src="src/ui/HistoryPage.js"></script>
+  <script src="src/ui/HelpPage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
