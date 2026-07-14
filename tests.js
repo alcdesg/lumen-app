@@ -362,6 +362,57 @@ test("AiPage - formatMarkdown & escapeHtml", () => {
   expect(formatted.includes("<br><br>")).toBe(true);
 });
 
+test("LumenApp - findMatchingPlannedTransaction Guardrails (Strict Month & Fuzzy description)", async () => {
+  const app = new LumenApp();
+  
+  // Set up mock categories and accounts
+  const acc = app.addAccount({ name: "Itaú", initial_balance: 1000 });
+  const cat = app.addCategory({ name: "Alimentação", type: "expense" });
+
+  // 1. Strict month guardrail check
+  const planAug = app.addTransaction({
+    account_id: acc.id,
+    category_id: cat.id,
+    amount: -100,
+    date: "2026-08-10",
+    description: "Supermercado Pão de Açúcar",
+    status: "planned"
+  });
+
+  const csvRowJuly = {
+    accountName: "Itaú",
+    categoryName: "Alimentação",
+    amount: -100,
+    date: "2026-07-10",
+    description: "Supermercado Pão de Açúcar"
+  };
+
+  const matchJuly = app.findMatchingPlannedTransaction(csvRowJuly);
+  expect(matchJuly).toBe(undefined);
+
+  const csvRowAugust = {
+    accountName: "Itaú",
+    categoryName: "Alimentação",
+    amount: -100,
+    date: "2026-08-09",
+    description: "Supermercado Pão de Açúcar"
+  };
+
+  const matchAugust = app.findMatchingPlannedTransaction(csvRowAugust);
+  expect(matchAugust !== undefined).toBe(true);
+  expect(matchAugust.id).toBe(planAug.id);
+
+  // 2. Fuzzy description matching
+  app.updateTransaction(planAug.id, { amount: -300 }); // value discrepancy
+  const matchFuzzy = app.findMatchingPlannedTransaction(csvRowAugust);
+  expect(matchFuzzy !== undefined).toBe(true);
+  expect(matchFuzzy.id).toBe(planAug.id);
+
+  // 3. Batch deduplication
+  const matchDeduplicated = app.findMatchingPlannedTransaction(csvRowAugust, [planAug.id]);
+  expect(matchDeduplicated).toBe(undefined);
+});
+
 
 // --- Execution Logic ---
 async function runTests() {

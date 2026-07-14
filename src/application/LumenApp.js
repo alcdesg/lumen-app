@@ -221,7 +221,7 @@ class LumenApp {
    * Finds a likely matching planned transaction for a given CSV row.
    * Matching criteria: same account, same category, date within +/- 5 days, amount within 20% tolerance, same status 'planned'.
    */
-  findMatchingPlannedTransaction(row) {
+  findMatchingPlannedTransaction(row, alreadyMatchedPlannedIds = []) {
     const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
     if (!acc) return null;
 
@@ -229,13 +229,21 @@ class LumenApp {
     if (!cat) return null;
 
     const rowAmount = Number(row.amount);
-    // Parse YYYY-MM-DD to date object
-    const rowDate = new Date(row.date + 'T00:00:00');
+    const rowDateStr = row.date;
+    const rowMonth = rowDateStr.substring(0, 7); // 'YYYY-MM'
+    const rowDate = new Date(rowDateStr + 'T00:00:00');
 
     return this.getActiveTransactions().find(t => {
       if (t.status !== 'planned') return false;
       if (t.account_id !== acc.id) return false;
       if (t.category_id !== cat.id) return false;
+
+      // Guardrail 2: Batch deduplication - do not match already matched plans
+      if (alreadyMatchedPlannedIds.includes(t.id)) return false;
+
+      // Guardrail 1: Strict month/year matching (same calendar month)
+      const tMonth = t.date.substring(0, 7);
+      if (rowMonth !== tMonth) return false;
 
       // Check date tolerance: +/- 5 days
       const tDate = new Date(t.date + 'T00:00:00');
@@ -243,14 +251,29 @@ class LumenApp {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       if (diffDays > 5) return false;
 
-      // Check amount: same sign, within 20% tolerance of row value
-      const tAmount = t.amount;
+      // Check amount: same sign
+      const tAmount = Number(t.amount || 0);
       if (Math.sign(tAmount) !== Math.sign(rowAmount)) return false;
-      
-      const tolerance = Math.abs(rowAmount) * 0.20;
-      if (Math.abs(tAmount - rowAmount) > tolerance) return false;
 
-      return true;
+      // Check amount tolerance: 20%
+      const tolerance = Math.abs(rowAmount) * 0.20;
+      const isWithinTolerance = Math.abs(tAmount - rowAmount) <= tolerance;
+      if (isWithinTolerance) return true;
+
+      // Guardrail 3: Description similarity (Fuzzy match) if amount tolerance exceeded
+      const cleanWords = (str) => {
+        return (str || "")
+          .toLowerCase()
+          .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+          .split(/\s+/)
+          .filter(word => word.length > 3);
+      };
+      
+      const rowWords = cleanWords(row.description);
+      const tWords = cleanWords(t.description);
+      const sharesSignificantWord = rowWords.some(w => tWords.includes(w));
+
+      return sharesSignificantWord;
     });
   }
 

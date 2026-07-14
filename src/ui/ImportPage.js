@@ -104,7 +104,9 @@ class ImportPage {
           </div>
         `;
 
-        // Render preview table rows
+        // Track already matched planned transactions to avoid duplicate matches in preview
+        const alreadyMatched = [];
+
         importState.transactions.forEach(row => {
           const accExists = app.accounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
           const catExists = app.categories.some(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
@@ -123,15 +125,59 @@ class ImportPage {
             memberBadge = `<span class="badge" style="background-color:var(--bg-base); color:var(--text-secondary); border:1px solid var(--border-color);">Casal</span>`;
           }
 
+          // Strict monthly candidates for manual dropdown link
+          const rowMonth = row.date.substring(0, 7);
+          const rowAcc = app.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+          const monthPlannedTxs = app.getActiveTransactions().filter(t => {
+            if (t.status !== 'planned') return false;
+            if (rowAcc && t.account_id !== rowAcc.id) return false;
+            return t.date.substring(0, 7) === rowMonth;
+          });
+
           // Try to find a matching planned transaction in the database
-          const matchedPlanned = app.findMatchingPlannedTransaction(row);
+          const matchedPlanned = app.findMatchingPlannedTransaction(row, alreadyMatched);
           let actionCell = '';
           let descHtml = `style="font-weight:600;"`;
           let descSubtitle = '';
 
           if (matchedPlanned) {
-            actionCell = `<input type="checkbox" class="reconcile-checkbox" data-row-num="${row.row}" data-planned-id="${matchedPlanned.id}" checked style="cursor:pointer; width:16px; height:16px; accent-color:var(--accent-secondary);">`;
-            descSubtitle = `<div style="font-size:10px; color:var(--accent-secondary); margin-top:2px; font-weight:normal;">🔗 Substitui: ${matchedPlanned.description} (Previsto)</div>`;
+            alreadyMatched.push(matchedPlanned.id);
+            
+            const rowAmount = Number(row.amount);
+            const tAmount = Number(matchedPlanned.amount || 0);
+            const tolerance = Math.abs(rowAmount) * 0.20;
+            const isDiscrepant = Math.abs(tAmount - rowAmount) > tolerance;
+            const formattedPlannedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(tAmount));
+
+            if (isDiscrepant) {
+              descSubtitle = `<div style="font-size:10px; color:hsl(35, 90%, 60%); margin-top:2px; font-weight:700;">⚠️ Substitui (Valor divergente): ${matchedPlanned.description} (${formattedPlannedAmount})</div>`;
+            } else {
+              descSubtitle = `<div style="font-size:10px; color:var(--accent-secondary); margin-top:2px; font-weight:normal;">🔗 Substitui: ${matchedPlanned.description} (Previsto)</div>`;
+            }
+
+            actionCell = `
+              <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                <input type="checkbox" class="reconcile-checkbox" data-row-num="${row.row}" data-planned-id="${matchedPlanned.id}" checked style="cursor:pointer; width:16px; height:16px; accent-color:var(--accent-secondary);">
+                <span style="font-size:9px; color:var(--accent-secondary); font-weight:600;">Substituir</span>
+              </div>
+            `;
+          } else if (monthPlannedTxs.length > 0) {
+            // No auto match, but candidates exist for manual link
+            const availableCandidates = monthPlannedTxs.filter(c => !alreadyMatched.includes(c.id));
+            if (availableCandidates.length > 0) {
+              actionCell = `
+                <select class="reconcile-select" data-row-num="${row.row}" style="font-size: 11px; padding: 4px; border: 1px solid var(--border-color); background-color: var(--bg-sidebar); color: var(--text-secondary); border-radius: 4px; width: 140px; cursor: pointer;">
+                  <option value="">-- Vincular Previsão --</option>
+                  ${availableCandidates.map(c => {
+                    const fmtCVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Math.abs(c.amount));
+                    const cDate = c.date.split('-').reverse().slice(0, 2).join('/');
+                    return `<option value="${c.id}">${c.description} (${cDate} - ${fmtCVal})</option>`;
+                  }).join('')}
+                </select>
+              `;
+            } else {
+              actionCell = `<span style="opacity: 0.3;" title="Nenhuma previsão disponível neste mês">—</span>`;
+            }
           } else {
             actionCell = `<span style="opacity: 0.3;" title="Nenhuma previsão correspondente encontrada">—</span>`;
           }
@@ -356,13 +402,23 @@ class ImportPage {
         const text = state.importState.fileText;
         const filename = state.importState.filename;
         
-        // Scan the DOM for selected reconciliations
+        // Scan the DOM for selected reconciliations (automatic and manual)
         const reconciliations = {};
+        
         const checkboxes = document.querySelectorAll(".reconcile-checkbox:checked");
         checkboxes.forEach(cb => {
           const rowNum = Number(cb.getAttribute("data-row-num"));
           const plannedId = cb.getAttribute("data-planned-id");
           reconciliations[rowNum] = plannedId;
+        });
+
+        const dropdowns = document.querySelectorAll(".reconcile-select");
+        dropdowns.forEach(sel => {
+          const rowNum = Number(sel.getAttribute("data-row-num"));
+          const plannedId = sel.value;
+          if (plannedId) {
+            reconciliations[rowNum] = plannedId;
+          }
         });
 
         try {
