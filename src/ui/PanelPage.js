@@ -201,9 +201,19 @@ class PanelPage {
       const fmtInc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(d.income);
       const fmtExp = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(d.expense);
 
+      const netVal = d.income - d.expense;
+      const fmtNet = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(netVal);
+      const netClass = netVal >= 0 ? 'margin-positive' : 'margin-negative';
+      const netSign = netVal > 0 ? '+' : '';
+
       chartHtml += `
         <div class="chart-month-group" style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
-          <div style="display: flex; gap: 12px; align-items: flex-end; height: 130px; width: 100%; justify-content: center; position: relative;">
+          <!-- Saldo Mensal Líquido -->
+          <div class="${netClass}" style="font-size: 11px; font-weight: 700; text-align: center; height: 16px; min-width: 60px; font-family: 'Inter', sans-serif;">
+            ${netSign}${fmtNet}
+          </div>
+
+          <div style="display: flex; gap: 12px; align-items: flex-end; height: 115px; width: 100%; justify-content: center; position: relative;">
             
             <!-- Income bar -->
             <div class="chart-bar income-bar" style="height: ${incHeight}%; width: 24px; background: linear-gradient(180deg, var(--color-income) 0%, hsla(142, 69%, 58%, 0.3) 100%); border-radius: 4px 4px 0 0; position: relative; transition: var(--transition-smooth); cursor: pointer;" title="Entradas: ${fmtInc}">
