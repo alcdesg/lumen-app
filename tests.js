@@ -346,6 +346,22 @@ test("LumenApp - findMatchingPlannedTransaction & CSV reconciliation flow", asyn
   expect(rolledBackActive.amount).toBe(-500);
 });
 
+test("AiPage - formatMarkdown & escapeHtml", () => {
+  const rawText = "Olá **Paula** e **Alcides**!\n* Dica 1\n- Dica 2\n\nFim.";
+  const formatted = AiPage.formatMarkdown(rawText);
+  
+  // Checks bold substitution
+  expect(formatted.includes("<strong>Paula</strong>")).toBe(true);
+  expect(formatted.includes("<strong>Alcides</strong>")).toBe(true);
+  
+  // Checks lists formatting
+  expect(formatted.includes('<li style="margin-left: 20px; margin-bottom: 4px;">Dica 1</li>')).toBe(true);
+  expect(formatted.includes('<li style="margin-left: 20px; margin-bottom: 4px;">Dica 2</li>')).toBe(true);
+  
+  // Checks paragraph break
+  expect(formatted.includes("<br><br>")).toBe(true);
+});
+
 
 // --- Execution Logic ---
 async function runTests() {

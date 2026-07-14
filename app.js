@@ -166,6 +166,10 @@ class ApplicationController {
         html = TasksPage.render(this.app, this.state);
         pageClass = TasksPage;
         break;
+      case 'ai':
+        html = AiPage.render(this.app, this.state);
+        pageClass = AiPage;
+        break;
       case 'calendar':
         html = CalendarPage.render(this.app, this.state);
         pageClass = CalendarPage;

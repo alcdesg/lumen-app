@@ -244,6 +244,52 @@ class PanelPage {
       </div>
     `;
 
+    // 5.9 Calculate Category Distribution (Current Month: 2026-07)
+    const currentMonthKey = '2026-07';
+    const categorySums = {};
+    let totalMonthExpense = 0;
+
+    activeTxs.forEach(t => {
+      if (t.date.startsWith(currentMonthKey) && t.amount < 0) {
+        const catId = t.category_id;
+        const cat = app.categories.find(c => c.id === catId);
+        const catName = cat ? cat.name : 'Sem Categoria';
+        categorySums[catName] = (categorySums[catName] || 0) + Math.abs(t.amount);
+        totalMonthExpense += Math.abs(t.amount);
+      }
+    });
+
+    // Sort categories descending
+    const sortedCategories = Object.entries(categorySums)
+      .map(([name, val]) => ({ name, val }))
+      .sort((a, b) => b.val - a.val);
+
+    let categoryBreakdownHtml = '<div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">';
+    if (sortedCategories.length === 0) {
+      categoryBreakdownHtml += `
+        <div style="font-size:12px; color:var(--text-muted); text-align:center; padding: 20px;">
+          Nenhuma despesa registrada neste mês.
+        </div>
+      `;
+    } else {
+      sortedCategories.forEach(c => {
+        const percent = totalMonthExpense > 0 ? Math.round((c.val / totalMonthExpense) * 100) : 0;
+        const fmtVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.val);
+        categoryBreakdownHtml += `
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-weight:500;">
+              <span style="color:var(--text-main); font-weight:600;">${c.name}</span>
+              <span style="color:var(--text-secondary);">${fmtVal} <span style="color:var(--text-muted); font-size:10px;">(${percent}%)</span></span>
+            </div>
+            <div style="width:100%; height:6px; background-color:var(--border-color); border-radius:3px; overflow:hidden;">
+              <div style="width:${percent}%; height:100%; background:linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    categoryBreakdownHtml += '</div>';
+
     // 7. Return Page HTML
     return `
       <div class="panel-grid animate-fade-in">
@@ -288,8 +334,8 @@ class PanelPage {
         <!-- Monthly Closing Chart -->
         ${chartHtml}
 
-        <!-- Split Screen: Recent Activities, Accounts & Flow by Member -->
-        <div class="recent-split" style="display: grid; grid-template-columns: 1.2fr 0.9fr 1fr; gap: 20px;">
+        <!-- Row 1: Recent Activities & Accounts Balances -->
+        <div class="recent-split" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; margin-bottom: 8px;">
           <div class="section-card">
             <h3>Movimentações Recentes</h3>
             ${txsHtml}
@@ -298,6 +344,14 @@ class PanelPage {
           <div class="section-card">
             <h3>Saldos de Caixa</h3>
             ${accountsHtml}
+          </div>
+        </div>
+
+        <!-- Row 2: Category Breakdown & Flow by Member -->
+        <div class="analysis-split" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="section-card">
+            <h3>Distribuição de Despesas (Mês Atual)</h3>
+            ${categoryBreakdownHtml}
           </div>
 
           <div class="section-card">

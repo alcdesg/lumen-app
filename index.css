@@ -1577,3 +1577,8 @@ body.light-theme .btn-action-icon:hover {
   box-shadow: 0 4px 12px var(--accent-primary-glow);
 }
 
+@keyframes pulse {
+  0%, 100% { transform: scale(0.6); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
