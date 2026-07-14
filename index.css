@@ -1533,7 +1533,7 @@ body.light-theme input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Light Theme Component Overrides */
-body.light-theme .calendar-day {
+body.light-theme .calendar-day:not([class*="intensity-"]) {
   background-color: hsla(210, 20%, 90%, 0.45);
 }
 
@@ -1565,5 +1565,15 @@ body.light-theme .btn-secondary:hover {
 body.light-theme .btn-action-icon:hover {
   background-color: hsla(210, 20%, 90%, 0.8);
   border-color: var(--border-color);
+}
+
+/* Monthly closing chart micro-animations */
+.chart-bar {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease !important;
+}
+
+.chart-bar:hover {
+  transform: translateY(-4px) scaleX(1.05);
+  box-shadow: 0 4px 12px var(--accent-primary-glow);
 }
 

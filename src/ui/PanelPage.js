@@ -158,6 +158,82 @@ class PanelPage {
       `;
     }
 
+    // Calculate Monthly Closing Chart (May to September 2026)
+    const chartMonths = [
+      { key: '2026-05', label: 'Mai/26' },
+      { key: '2026-06', label: 'Jun/26' },
+      { key: '2026-07', label: 'Jul/26' },
+      { key: '2026-08', label: 'Ago/26' },
+      { key: '2026-09', label: 'Set/26' }
+    ];
+
+    const monthlyData = chartMonths.map(m => {
+      let income = 0;
+      let expense = 0;
+      activeTxs.forEach(t => {
+        if (t.date.startsWith(m.key)) {
+          if (t.amount > 0) {
+            income += t.amount;
+          } else {
+            expense += Math.abs(t.amount);
+          }
+        }
+      });
+      return {
+        ...m,
+        income,
+        expense
+      };
+    });
+
+    const maxVal = Math.max(...monthlyData.map(d => Math.max(d.income, d.expense)), 1000);
+
+    let chartHtml = `
+      <div class="section-card" style="grid-column: 1 / -1; margin-bottom: 8px;">
+        <h3>Fechamento Mensal (Entradas vs Saídas)</h3>
+        <div class="chart-container" style="display: flex; justify-content: space-around; align-items: flex-end; height: 180px; padding: 20px 10px 10px 10px; border-bottom: 1px solid var(--border-color); margin-top: 16px; position: relative;">
+    `;
+
+    monthlyData.forEach(d => {
+      const incHeight = Math.max(3, Math.round((d.income / maxVal) * 100));
+      const expHeight = Math.max(3, Math.round((d.expense / maxVal) * 100));
+
+      const fmtInc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(d.income);
+      const fmtExp = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(d.expense);
+
+      chartHtml += `
+        <div class="chart-month-group" style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
+          <div style="display: flex; gap: 12px; align-items: flex-end; height: 130px; width: 100%; justify-content: center; position: relative;">
+            
+            <!-- Income bar -->
+            <div class="chart-bar income-bar" style="height: ${incHeight}%; width: 24px; background: linear-gradient(180deg, var(--color-income) 0%, hsla(142, 69%, 58%, 0.3) 100%); border-radius: 4px 4px 0 0; position: relative; transition: var(--transition-smooth); cursor: pointer;" title="Entradas: ${fmtInc}">
+            </div>
+            
+            <!-- Expense bar -->
+            <div class="chart-bar expense-bar" style="height: ${expHeight}%; width: 24px; background: linear-gradient(180deg, var(--color-expense) 0%, hsla(350, 89%, 60%, 0.3) 100%); border-radius: 4px 4px 0 0; position: relative; transition: var(--transition-smooth); cursor: pointer;" title="Saídas: ${fmtExp}">
+            </div>
+            
+          </div>
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">${d.label}</span>
+        </div>
+      `;
+    });
+
+    chartHtml += `
+        </div>
+        <div style="display: flex; justify-content: center; gap: 24px; margin-top: 12px; font-size: 11px; font-weight: 600;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-income); border-radius: 2px;"></div>
+            <span style="color: var(--text-secondary);">Entradas (Receitas)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 10px; height: 10px; background-color: var(--color-expense); border-radius: 2px;"></div>
+            <span style="color: var(--text-secondary);">Saídas (Despesas)</span>
+          </div>
+        </div>
+      </div>
+    `;
+
     // 7. Return Page HTML
     return `
       <div class="panel-grid animate-fade-in">
@@ -198,6 +274,9 @@ class PanelPage {
             <div class="kpi-subtext">Tempo até a próxima entrada</div>
           </div>
         </div>
+
+        <!-- Monthly Closing Chart -->
+        ${chartHtml}
 
         <!-- Split Screen: Recent Activities, Accounts & Flow by Member -->
         <div class="recent-split" style="display: grid; grid-template-columns: 1.2fr 0.9fr 1fr; gap: 20px;">
