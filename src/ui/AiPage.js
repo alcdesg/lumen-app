@@ -34,6 +34,54 @@ class AiPage {
       `;
     }
 
+    // Read chat history from localStorage
+    let history = [];
+    try {
+      history = JSON.parse(localStorage.getItem("lumen_chat_history")) || [];
+    } catch (e) {
+      history = [];
+    }
+
+    // If empty, initialize history with welcome message
+    if (history.length === 0) {
+      history.push({
+        role: "model",
+        text: "Olá, Paula e Alcides! Eu sou o **Lumen IA**.\n\nAcabei de analisar os dados consolidados das suas contas de caixa e transações planejadas. Como posso ajudar vocês hoje? Vocês podem digitar suas próprias perguntas ou usar uma das sugestões rápidas abaixo."
+      });
+      localStorage.setItem("lumen_chat_history", JSON.stringify(history));
+    }
+
+    // Build messages HTML dynamically
+    let messagesHtml = '';
+    history.forEach(msg => {
+      const isUser = msg.role === 'user';
+      const formattedText = AiPage.formatMarkdown(msg.text);
+
+      if (isUser) {
+        messagesHtml += `
+          <div class="ai-msg user-msg" style="display: flex; gap: 12px; max-width: 85%; align-self: flex-end; justify-content: flex-end;">
+            <div style="background-color: var(--accent-primary-glow); border: 1px solid var(--accent-primary); padding: 12px 16px; border-radius: 12px 0 12px 12px; font-size: 13px; line-height: 1.5; color: var(--text-main);">
+              ${formattedText}
+            </div>
+            <div style="background-color: var(--accent-primary-glow); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent-primary); font-weight: 700; font-size: 10px;">
+              VC
+            </div>
+          </div>
+        `;
+      } else {
+        messagesHtml += `
+          <div class="ai-msg assistant-msg" style="display: flex; gap: 12px; max-width: 85%;">
+            <div style="background-color: var(--color-income-bg); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--color-income);"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3-3-7z"/></svg>
+            </div>
+            <div style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 0 12px 12px 12px; font-size: 13px; line-height: 1.5; color: var(--text-main);">
+              ${formattedText}
+            </div>
+          </div>
+        `;
+      }
+    });
+
     // Chat view
     return `
       <div class="ai-container animate-fade-in" style="display: flex; flex-direction: column; height: calc(100vh - 48px); max-height: 800px; max-width: 900px; margin: 0 auto; gap: 16px;">
@@ -49,30 +97,25 @@ class AiPage {
             </div>
             <div>
               <h3 style="font-size: 16px; margin: 0; border: none; padding: 0;">Lumen IA</h3>
-              <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Online • Análise financeira baseada em Gemini 1.5 Flash</p>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Online • Análise financeira baseada em Gemini 3.5 Flash</p>
             </div>
           </div>
           
-          <button id="disconnect-ai-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" title="Remover API Key local">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-            Desconectar IA
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button id="clear-ai-chat-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" title="Limpar conversa">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
+              Limpar Chat
+            </button>
+            <button id="disconnect-ai-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; display: flex; align-items: center; gap: 6px;" title="Remover API Key local">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+              Desconectar IA
+            </button>
+          </div>
         </div>
 
         <!-- Messages Area -->
         <div class="section-card" id="ai-chat-messages" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 24px; background-color: rgba(15, 23, 42, 0.15);">
-          <!-- Welcome message -->
-          <div class="ai-msg assistant-msg" style="display: flex; gap: 12px; max-width: 85%;">
-            <div style="background-color: var(--color-income-bg); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: var(--color-income);"><path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3-3-7z"/></svg>
-            </div>
-            <div style="background-color: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 0 12px 12px 12px; font-size: 13px; line-height: 1.5; color: var(--text-main);">
-              Olá, Paula e Alcides! Eu sou o <strong>Lumen IA</strong>. 
-              Acabei de analisar os dados consolidados das suas contas de caixa e transações planejadas. 
-              <br><br>
-              Como posso ajudar vocês hoje? Vocês podem digitar suas próprias perguntas ou usar uma das sugestões rápidas abaixo.
-            </div>
-          </div>
+          ${messagesHtml}
         </div>
 
         <!-- Suggestions and Typing Area -->
@@ -112,9 +155,15 @@ class AiPage {
   static initEvents(app, state, appInstance) {
     const apiKeySetupForm = document.getElementById("ai-key-setup-form");
     const disconnectAiBtn = document.getElementById("disconnect-ai-btn");
+    const clearAiChatBtn = document.getElementById("clear-ai-chat-btn");
     const aiChatForm = document.getElementById("ai-chat-form");
     const aiChatMessages = document.getElementById("ai-chat-messages");
     const suggestBtns = document.querySelectorAll(".ai-suggest-btn");
+
+    // Scroll chat area to the bottom initially
+    if (aiChatMessages) {
+      aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+    }
 
     // 1. Setup API Key Form
     if (apiKeySetupForm) {
@@ -133,6 +182,17 @@ class AiPage {
       disconnectAiBtn.addEventListener("click", () => {
         if (confirm("Deseja realmente desconectar o Lumen IA? Sua chave de API será apagada deste navegador.")) {
           localStorage.removeItem("lumen_gemini_key");
+          localStorage.removeItem("lumen_chat_history");
+          appInstance.renderActivePage();
+        }
+      });
+    }
+
+    // 2.5 Clear Chat History Button
+    if (clearAiChatBtn) {
+      clearAiChatBtn.addEventListener("click", () => {
+        if (confirm("Deseja limpar todo o histórico de conversas com a IA?")) {
+          localStorage.removeItem("lumen_chat_history");
           appInstance.renderActivePage();
         }
       });
@@ -194,6 +254,16 @@ class AiPage {
       const apiKey = localStorage.getItem("lumen_gemini_key");
       if (!apiKey) return;
 
+      // 1. Read history, append user prompt and save to local storage
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem("lumen_chat_history")) || [];
+      } catch (e) {
+        history = [];
+      }
+      history.push({ role: "user", text: userPrompt });
+      localStorage.setItem("lumen_chat_history", JSON.stringify(history));
+
       appendUserMessage(userPrompt);
       appendLoadingIndicator();
 
@@ -201,22 +271,34 @@ class AiPage {
         const context = AiPage.constructContext(app);
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
+        // 2. Prepare payload contents with multi-turn history (excluding static greeting at index 0)
+        const activeConversations = history.filter((msg, idx) => !(idx === 0 && msg.role === "model"));
+        
+        // Limit history to the last 10 messages to keep request fast and save tokens
+        const windowHistory = activeConversations.slice(-10);
+        
+        const contents = [];
+        windowHistory.forEach((msg, idx) => {
+          if (idx === 0) {
+            // Prepend context to the first message in the payload window
+            contents.push({
+              role: msg.role === "user" ? "user" : "model",
+              parts: [{ text: `${context}\n\n[Mensagem inicial de Paula/Alcides]:\n${msg.text}` }]
+            });
+          } else {
+            contents.push({
+              role: msg.role === "user" ? "user" : "model",
+              parts: [{ text: msg.text }]
+            });
+          }
+        });
+
         const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `${context}\n\nPERGUNTA DO USUÁRIO:\n"${userPrompt}"`
-                  }
-                ]
-              }
-            ]
-          })
+          body: JSON.stringify({ contents })
         });
 
         if (!response.ok) {
@@ -226,6 +308,11 @@ class AiPage {
 
         const data = await response.json();
         const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui processar a resposta.";
+        
+        // 3. Append model response to history and save
+        history.push({ role: "model", text: replyText });
+        localStorage.setItem("lumen_chat_history", JSON.stringify(history));
+
         const formattedHtml = AiPage.formatMarkdown(replyText);
         
         removeLoadingIndicator();
