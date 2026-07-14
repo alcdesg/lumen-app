@@ -197,10 +197,10 @@ class AiPage {
       appendUserMessage(userPrompt);
       appendLoadingIndicator();
 
-      const context = AiPage.constructContext(app);
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
       try {
+        const context = AiPage.constructContext(app);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
         const response = await fetch(url, {
           method: "POST",
           headers: {
@@ -209,7 +209,6 @@ class AiPage {
           body: JSON.stringify({
             contents: [
               {
-                role: "user",
                 parts: [
                   {
                     text: `${context}\n\nPERGUNTA DO USUÁRIO:\n"${userPrompt}"`
@@ -288,22 +287,29 @@ class AiPage {
   static constructContext(app) {
     const today = "2026-07-13"; // Baseline today
 
-    // Calculate actual balances
-    const balances = {};
-    app.accounts.forEach(a => {
-      balances[a.name] = app.getAccountBalance(a.id, today);
-    });
-
     // Extract active transactions
     const activeTxs = app.getActiveTransactions();
-    
+
+    // Calculate actual balances using active transactions history
+    const balances = {};
+    app.accounts.filter(a => a.is_active).forEach(acc => {
+      const accTxs = activeTxs.filter(t => t.account_id === acc.id && (t.date || "") <= today);
+      const accChange = accTxs.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+      balances[acc.name] = (acc.initial_balance || 0) + accChange;
+    });
+
     // Sort transactions chronologically (newest first, keep up to 100 for context bounds)
-    activeTxs.sort((a, b) => b.date.localeCompare(a.date));
+    const sortedTxs = [...activeTxs].sort((a, b) => {
+      const dateA = a.date || "";
+      const dateB = b.date || "";
+      return dateB.localeCompare(dateA);
+    });
     
-    const txSummary = activeTxs.slice(0, 100).map(t => {
+    const txSummary = sortedTxs.slice(0, 100).map(t => {
       const cat = app.categories.find(c => c.id === t.category_id)?.name || 'Sem Categoria';
       const acc = app.accounts.find(a => a.id === t.account_id)?.name || 'Sem Conta';
-      return `- Data: ${t.date}, Desc: ${t.description}, Categoria: ${cat}, Conta: ${acc}, Responsável: ${t.member || 'Casal'}, Valor: R$ ${t.amount.toFixed(2)}, Status: ${t.status}`;
+      const val = Number(t.amount || 0);
+      return `- Data: ${t.date || ""}, Desc: ${t.description || ""}, Categoria: ${cat}, Conta: ${acc}, Responsável: ${t.member || 'Casal'}, Valor: R$ ${val.toFixed(2)}, Status: ${t.status || ""}`;
     });
 
     return `
