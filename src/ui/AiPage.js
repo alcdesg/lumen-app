@@ -269,7 +269,7 @@ class AiPage {
 
       try {
         const context = AiPage.constructContext(app);
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         // 2. Prepare payload contents with multi-turn history (excluding static greeting at index 0)
         const activeConversations = history.filter((msg, idx) => !(idx === 0 && msg.role === "model"));
