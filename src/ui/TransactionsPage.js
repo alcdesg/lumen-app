@@ -8,7 +8,9 @@ class TransactionsPage {
         account: 'all',
         status: 'all',
         member: 'all',
-        showTrash: false
+        showTrash: false,
+        startDate: '',
+        endDate: ''
       };
     }
     if (!state.txSort) {
@@ -43,6 +45,10 @@ class TransactionsPage {
 
       // Member match
       if (filters.member !== 'all' && t.member !== filters.member) return false;
+
+      // Date range match
+      if (filters.startDate && t.date < filters.startDate) return false;
+      if (filters.endDate && t.date > filters.endDate) return false;
 
       return true;
     });
@@ -201,35 +207,55 @@ class TransactionsPage {
         </div>
 
         <!-- Filters Row -->
-        <div class="table-header-filters">
-          <div class="search-input-wrapper">
-            <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-            <input type="text" id="tx-search-input" placeholder="Buscar por descrição..." value="${filters.search}" autocomplete="off">
+        <div class="table-header-filters" style="display: flex; flex-direction: column; gap: 12px; align-items: stretch;">
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="search-input-wrapper" style="flex: 1; min-width: 200px;">
+              <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <input type="text" id="tx-search-input" placeholder="Buscar por descrição..." value="${filters.search}" autocomplete="off">
+            </div>
+            
+            <div class="filters-row" style="flex-wrap: wrap; gap: 8px;">
+              <select id="tx-filter-type" class="filter-select">
+                <option value="all" ${filters.type === 'all' ? 'selected' : ''}>Todas Entradas</option>
+                <option value="income" ${filters.type === 'income' ? 'selected' : ''}>Receitas</option>
+                <option value="expense" ${filters.type === 'expense' ? 'selected' : ''}>Despesas</option>
+              </select>
+              
+              <select id="tx-filter-account" class="filter-select">
+                ${accountOptions}
+              </select>
+              
+              <select id="tx-filter-status" class="filter-select">
+                <option value="all" ${filters.status === 'all' ? 'selected' : ''}>Todos Status</option>
+                <option value="confirmed" ${filters.status === 'confirmed' ? 'selected' : ''}>Realizado</option>
+                <option value="planned" ${filters.status === 'planned' ? 'selected' : ''}>Previsto</option>
+              </select>
+
+              <select id="tx-filter-member" class="filter-select">
+                <option value="all" ${filters.member === 'all' ? 'selected' : ''}>Todos Responsáveis</option>
+                <option value="Casal" ${filters.member === 'Casal' ? 'selected' : ''}>Casal (Compartilhado)</option>
+                <option value="Paula" ${filters.member === 'Paula' ? 'selected' : ''}>Paula</option>
+                <option value="Alcides" ${filters.member === 'Alcides' ? 'selected' : ''}>Alcides</option>
+              </select>
+            </div>
           </div>
           
-          <div class="filters-row">
-            <select id="tx-filter-type" class="filter-select">
-              <option value="all" ${filters.type === 'all' ? 'selected' : ''}>Todas Entradas</option>
-              <option value="income" ${filters.type === 'income' ? 'selected' : ''}>Receitas</option>
-              <option value="expense" ${filters.type === 'expense' ? 'selected' : ''}>Despesas</option>
-            </select>
+          <!-- Date Range Filter Row -->
+          <div style="display: flex; gap: 12px; align-items: center; justify-content: flex-start; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>Período de:</span>
+              <input type="date" id="tx-filter-start-date" style="padding: 4px 8px; font-family: inherit; font-size: 12px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px;" value="${filters.startDate || ''}">
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>até:</span>
+              <input type="date" id="tx-filter-end-date" style="padding: 4px 8px; font-family: inherit; font-size: 12px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px;" value="${filters.endDate || ''}">
+            </div>
+            <button type="button" id="tx-filter-clear-dates-btn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; height: 26px;" title="Limpar período de datas">Limpar Datas</button>
             
-            <select id="tx-filter-account" class="filter-select">
-              ${accountOptions}
-            </select>
-            
-            <select id="tx-filter-status" class="filter-select">
-              <option value="all" ${filters.status === 'all' ? 'selected' : ''}>Todos Status</option>
-              <option value="confirmed" ${filters.status === 'confirmed' ? 'selected' : ''}>Realizado</option>
-              <option value="planned" ${filters.status === 'planned' ? 'selected' : ''}>Previsto</option>
-            </select>
-
-            <select id="tx-filter-member" class="filter-select">
-              <option value="all" ${filters.member === 'all' ? 'selected' : ''}>Todos Responsáveis</option>
-              <option value="Casal" ${filters.member === 'Casal' ? 'selected' : ''}>Casal (Compartilhado)</option>
-              <option value="Paula" ${filters.member === 'Paula' ? 'selected' : ''}>Paula</option>
-              <option value="Alcides" ${filters.member === 'Alcides' ? 'selected' : ''}>Alcides</option>
-            </select>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+              <button type="button" class="btn btn-secondary quick-date-btn" data-range="this-month" style="padding: 4px 8px; font-size: 11px; height: 26px;">Este Mês</button>
+              <button type="button" class="btn btn-secondary quick-date-btn" data-range="last-30" style="padding: 4px 8px; font-size: 11px; height: 26px;">Últimos 30 Dias</button>
+            </div>
           </div>
         </div>
 
@@ -304,7 +330,10 @@ class TransactionsPage {
               </div>
               <div class="form-row">
                 <label for="edit-tx-category">Categoria*</label>
-                <select id="edit-tx-category" required></select>
+                <div style="display: flex; gap: 8px;">
+                  <select id="edit-tx-category" required style="flex: 1;"></select>
+                  <button type="button" id="edit-add-new-cat-btn" class="btn btn-secondary" style="padding: 0 10px; font-weight: bold; font-size: 16px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" title="Criar Nova Categoria na hora">+</button>
+                </div>
               </div>
             </div>
 
@@ -335,6 +364,10 @@ class TransactionsPage {
     const filterStatus = document.getElementById("tx-filter-status");
     const filterMember = document.getElementById("tx-filter-member");
     const toggleTrash = document.getElementById("tx-toggle-trash");
+    const startDateInput = document.getElementById("tx-filter-start-date");
+    const endDateInput = document.getElementById("tx-filter-end-date");
+    const clearDatesBtn = document.getElementById("tx-filter-clear-dates-btn");
+    const quickRangeBtns = document.querySelectorAll(".quick-date-btn");
 
     // Bind filters changes
     const updateFilters = () => {
@@ -348,7 +381,9 @@ class TransactionsPage {
         account: filterAccount ? filterAccount.value : 'all',
         status: filterStatus ? filterStatus.value : 'all',
         member: filterMember ? filterMember.value : 'all',
-        showTrash: toggleTrash ? toggleTrash.checked : false
+        showTrash: toggleTrash ? toggleTrash.checked : false,
+        startDate: startDateInput ? startDateInput.value : '',
+        endDate: endDateInput ? endDateInput.value : ''
       };
 
       state.txSearchFocus = {
@@ -370,6 +405,40 @@ class TransactionsPage {
     if (toggleTrash) {
       toggleTrash.addEventListener("change", updateFilters);
     }
+    if (startDateInput) {
+      startDateInput.addEventListener("change", updateFilters);
+    }
+    if (endDateInput) {
+      endDateInput.addEventListener("change", updateFilters);
+    }
+    if (clearDatesBtn) {
+      clearDatesBtn.addEventListener("click", () => {
+        if (startDateInput) startDateInput.value = "";
+        if (endDateInput) endDateInput.value = "";
+        updateFilters();
+      });
+    }
+    quickRangeBtns.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const range = e.currentTarget.getAttribute("data-range");
+        const today = new Date();
+        
+        if (range === "this-month") {
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          
+          if (startDateInput) startDateInput.value = firstDay.toLocaleDateString('en-CA');
+          if (endDateInput) endDateInput.value = lastDay.toLocaleDateString('en-CA');
+        } else if (range === "last-30") {
+          const past30 = new Date();
+          past30.setDate(today.getDate() - 30);
+          
+          if (startDateInput) startDateInput.value = past30.toLocaleDateString('en-CA');
+          if (endDateInput) endDateInput.value = today.toLocaleDateString('en-CA');
+        }
+        updateFilters();
+      });
+    });
 
     // Restore search input focus and cursor selection if it was active
     if (state.txSearchFocus && state.txSearchFocus.focused && searchInput) {
@@ -508,20 +577,53 @@ class TransactionsPage {
         editToggleExpense.classList.remove("active-expense");
         editToggleIncome.classList.add("active-income");
       }
-      // Reload categories dropdown depending on type (expense / income)
+      // Reload categories dropdown depending on type (expense / income) - sorted alphabetically
       const catSelect = document.getElementById("edit-tx-category");
+      if (!catSelect) return;
+      
       let catOptions = '';
-      app.categories
+      const sortedCats = [...app.categories]
         .filter(c => c.is_active && c.type === type)
-        .forEach(c => {
-          catOptions += `<option value="${c.id}">${c.name}</option>`;
-        });
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedCats.forEach(c => {
+        catOptions += `<option value="${c.id}">${c.name}</option>`;
+      });
       catSelect.innerHTML = catOptions;
     };
 
     if (editToggleExpense && editToggleIncome) {
       editToggleExpense.addEventListener("click", () => setEditType('expense'));
       editToggleIncome.addEventListener("click", () => setEditType('income'));
+    }
+
+    // Quick Add Category inside Edit Modal Click Handler
+    const editAddNewCatBtn = document.getElementById('edit-add-new-cat-btn');
+    if (editAddNewCatBtn) {
+      editAddNewCatBtn.addEventListener('click', async () => {
+        const type = currentEditType || 'expense';
+        const labelType = type === 'income' ? 'Receita' : 'Despesa';
+        const name = prompt(`Criar Nova Categoria de ${labelType}:\nDigite o nome da categoria:`);
+        if (name && name.trim()) {
+          const cleanName = name.trim();
+          let cat = app.categories.find(c => c.name.toLowerCase() === cleanName.toLowerCase() && c.type === type);
+          if (!cat) {
+            try {
+              cat = app.addCategory({ name: cleanName, type });
+              await app.save();
+            } catch (err) {
+              alert(err.message);
+              return;
+            }
+          }
+          // Reload options and auto-select
+          setEditType(type);
+          const catSelect = document.getElementById('edit-tx-category');
+          if (catSelect) {
+            catSelect.value = cat.id;
+          }
+        }
+      });
     }
 
     const editBtns = document.querySelectorAll(".edit-tx-btn");

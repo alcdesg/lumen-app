@@ -55,8 +55,9 @@ class PanelPage {
       `;
     }
 
-    // 4. Render Recent Transactions List
+    // 4. Render Recent Transactions List (only up to today)
     const sortedTxs = [...activeTxs]
+      .filter(t => t.date <= today)
       .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))
       .slice(0, 5);
 
@@ -244,8 +245,8 @@ class PanelPage {
       </div>
     `;
 
-    // 5.9 Calculate Category Distribution (Current Month: 2026-07)
-    const currentMonthKey = '2026-07';
+    // 5.9 Calculate Category Distribution (Current Month based on system date)
+    const currentMonthKey = today.substring(0, 7);
     const categorySums = {};
     let totalMonthExpense = 0;
 
@@ -264,7 +265,45 @@ class PanelPage {
       .map(([name, val]) => ({ name, val }))
       .sort((a, b) => b.val - a.val);
 
-    let categoryBreakdownHtml = '<div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">';
+    let categoryBreakdownHtml = `
+      <style>
+        .category-distribution-item {
+          position: relative;
+          padding: 6px 0;
+          transition: background-color 0.2s;
+          border-radius: 4px;
+        }
+        .category-distribution-item:hover {
+          background-color: rgba(255, 255, 255, 0.02);
+        }
+        .category-tooltip {
+          position: absolute;
+          bottom: 115%;
+          left: 50%;
+          transform: translateX(-50%) translateY(6px);
+          width: 280px;
+          max-height: 220px;
+          overflow-y: auto;
+          background: var(--bg-sidebar);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+          z-index: 1000;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.2s, transform 0.2s;
+          box-sizing: border-box;
+        }
+        .category-distribution-item:hover .category-tooltip {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+          pointer-events: auto;
+        }
+      </style>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+    `;
+
     if (sortedCategories.length === 0) {
       categoryBreakdownHtml += `
         <div style="font-size:12px; color:var(--text-muted); text-align:center; padding: 20px;">
@@ -275,14 +314,55 @@ class PanelPage {
       sortedCategories.forEach(c => {
         const percent = totalMonthExpense > 0 ? Math.round((c.val / totalMonthExpense) * 100) : 0;
         const fmtVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.val);
+
+        // Fetch transactions for tooltip detail
+        const catTxs = activeTxs.filter(t => {
+          if (!t.date.startsWith(currentMonthKey)) return false;
+          if (t.amount >= 0) return false;
+          const cat = app.categories.find(c_ => c_.id === t.category_id);
+          return cat && cat.name === c.name;
+        });
+        catTxs.sort((a, b) => b.date.localeCompare(a.date));
+
+        const tooltipTableHtml = `
+          <table style="width:100%; border-collapse:collapse; font-size:10px; color:var(--text-main);">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border-color); text-align:left;">
+                <th style="padding:4px 2px; font-weight:700;">Data</th>
+                <th style="padding:4px 2px; font-weight:700;">Descrição</th>
+                <th style="padding:4px 2px; font-weight:700; text-align:right;">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${catTxs.map(tx => {
+                const fmtTxVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(tx.amount));
+                const fmtTxDate = tx.date.split('-').reverse().slice(0, 2).join('/');
+                return `
+                  <tr style="border-bottom:1px dashed rgba(255,255,255,0.05);">
+                    <td style="padding:4px 2px; white-space:nowrap; color:var(--text-muted);">${fmtTxDate}</td>
+                    <td style="padding:4px 2px; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${tx.description}">${tx.description}</td>
+                    <td style="padding:4px 2px; text-align:right; font-family:'Inter'; font-weight:600;">${fmtTxVal}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+
         categoryBreakdownHtml += `
-          <div>
-            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-weight:500;">
+          <div class="category-distribution-item">
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-weight:500; padding: 0 4px;">
               <span style="color:var(--text-main); font-weight:600;">${c.name}</span>
               <span style="color:var(--text-secondary);">${fmtVal} <span style="color:var(--text-muted); font-size:10px;">(${percent}%)</span></span>
             </div>
-            <div style="width:100%; height:6px; background-color:var(--border-color); border-radius:3px; overflow:hidden;">
+            <div style="width:calc(100% - 8px); margin: 0 4px; height:6px; background-color:var(--border-color); border-radius:3px; overflow:hidden;">
               <div style="width:${percent}%; height:100%; background:linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); border-radius:3px;"></div>
+            </div>
+
+            <!-- Tooltip table -->
+            <div class="category-tooltip">
+              <div style="font-weight:700; font-size:11px; color:var(--accent-secondary); margin-bottom:6px; text-transform:uppercase;">${c.name} - Detalhamento</div>
+              ${tooltipTableHtml}
             </div>
           </div>
         `;

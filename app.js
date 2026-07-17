@@ -391,6 +391,35 @@ class ApplicationController {
         this.updateThemeUI();
       });
     }
+
+    // Quick Add Category Click Handler
+    const quickAddNewCatBtn = document.getElementById('quick-add-new-cat-btn');
+    if (quickAddNewCatBtn) {
+      quickAddNewCatBtn.addEventListener('click', async () => {
+        const type = this.currentQuickAddType || 'expense';
+        const labelType = type === 'income' ? 'Receita' : 'Despesa';
+        const name = prompt(`Criar Nova Categoria de ${labelType}:\nDigite o nome da categoria:`);
+        if (name && name.trim()) {
+          const cleanName = name.trim();
+          let cat = this.app.categories.find(c => c.name.toLowerCase() === cleanName.toLowerCase() && c.type === type);
+          if (!cat) {
+            try {
+              cat = this.app.addCategory({ name: cleanName, type });
+              await this.app.save();
+            } catch (err) {
+              alert(err.message);
+              return;
+            }
+          }
+          // Reload options and auto-select new category
+          this.populateQuickAddCategories(type);
+          const catSelect = document.getElementById('tx-category');
+          if (catSelect) {
+            catSelect.value = cat.id;
+          }
+        }
+      });
+    }
   }
 
   /**
@@ -438,12 +467,16 @@ class ApplicationController {
 
   populateQuickAddCategories(type) {
     const catSelect = document.getElementById('tx-category');
+    if (!catSelect) return;
+    
     let catOptions = '';
-    this.app.categories
+    const sortedCats = [...this.app.categories]
       .filter(c => c.is_active && c.type === type)
-      .forEach(c => {
-        catOptions += `<option value="${c.id}">${c.name}</option>`;
-      });
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedCats.forEach(c => {
+      catOptions += `<option value="${c.id}">${c.name}</option>`;
+    });
     catSelect.innerHTML = catOptions;
   }
 
