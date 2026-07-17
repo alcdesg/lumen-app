@@ -338,6 +338,10 @@ class TransactionsPage {
 
     // Bind filters changes
     const updateFilters = () => {
+      const isSearchFocused = document.activeElement && document.activeElement.id === 'tx-search-input';
+      const searchSelStart = searchInput ? searchInput.selectionStart : 0;
+      const searchSelEnd = searchInput ? searchInput.selectionEnd : 0;
+
       state.txFilters = {
         search: searchInput ? searchInput.value : '',
         type: filterType ? filterType.value : 'all',
@@ -346,6 +350,13 @@ class TransactionsPage {
         member: filterMember ? filterMember.value : 'all',
         showTrash: toggleTrash ? toggleTrash.checked : false
       };
+
+      state.txSearchFocus = {
+        focused: isSearchFocused,
+        start: searchSelStart,
+        end: searchSelEnd
+      };
+
       appInstance.renderActivePage(); // Reload table
     };
 
@@ -358,6 +369,15 @@ class TransactionsPage {
     }
     if (toggleTrash) {
       toggleTrash.addEventListener("change", updateFilters);
+    }
+
+    // Restore search input focus and cursor selection if it was active
+    if (state.txSearchFocus && state.txSearchFocus.focused && searchInput) {
+      searchInput.focus();
+      try {
+        searchInput.setSelectionRange(state.txSearchFocus.start, state.txSearchFocus.end);
+      } catch (e) {}
+      state.txSearchFocus = null; // Reset state
     }
 
     // Interactive Sorting Events
