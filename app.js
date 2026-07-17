@@ -27,10 +27,14 @@ class ApplicationController {
       }
     };
 
-    // Initialize Theme preference
-    const savedTheme = localStorage.getItem("lumen_theme") || "dark";
+    // Initialize Theme preference based on the active user settings
+    const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+    const savedTheme = localStorage.getItem(`lumen_theme_${activeUser}`) || localStorage.getItem("lumen_theme") || "dark";
+    localStorage.setItem("lumen_theme", savedTheme);
     if (savedTheme === "light") {
       document.body.classList.add("light-theme");
+    } else {
+      document.body.classList.remove("light-theme");
     }
   }
 
@@ -193,6 +197,10 @@ class ApplicationController {
       case 'help':
         html = HelpPage.render(this.app, this.state);
         pageClass = HelpPage;
+        break;
+      case 'settings':
+        html = SettingsPage.render(this.app, this.state);
+        pageClass = SettingsPage;
         break;
       default:
         html = `<div class="empty-state">Página não encontrada.</div>`;
@@ -376,7 +384,10 @@ class ApplicationController {
       themeToggleBtn.addEventListener('click', () => {
         document.body.classList.toggle('light-theme');
         const isLight = document.body.classList.contains('light-theme');
-        localStorage.setItem('lumen_theme', isLight ? 'light' : 'dark');
+        const theme = isLight ? 'light' : 'dark';
+        const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+        localStorage.setItem('lumen_theme', theme);
+        localStorage.setItem(`lumen_theme_${activeUser}`, theme);
         this.updateThemeUI();
       });
     }

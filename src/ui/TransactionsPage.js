@@ -439,19 +439,19 @@ class TransactionsPage {
           return;
         }
 
-        // CSV headers
-        const headers = ["Data", "Descricao", "Categoria", "Conta", "Responsavel", "Status", "Valor (R$)"];
+        // CSV headers (strictly compatible with CsvParser.js column map)
+        const headers = ["Data", "Descrição", "Valor", "Categoria", "Conta", "Responsável", "Status"];
         const rows = txsToExport.map(t => {
           const cat = app.categories.find(c => c.id === t.category_id) || { name: 'Sem Categoria' };
           const acc = app.accounts.find(a => a.id === t.account_id) || { name: 'Sem Conta' };
           return [
             t.date,
             `"${t.description.replace(/"/g, '""')}"`,
+            t.amount,
             `"${cat.name.replace(/"/g, '""')}"`,
             `"${acc.name.replace(/"/g, '""')}"`,
             t.member || 'Casal',
-            t.status === 'confirmed' ? 'Realizado' : 'Previsto',
-            t.amount
+            t.status === 'confirmed' ? 'Realizado' : 'Previsto'
           ];
         });
 
