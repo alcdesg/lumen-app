@@ -135,6 +135,9 @@ class TasksPage {
               ${sign}${formattedAmount}
             </td>
             <td class="row-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="btn btn-primary resolve-confirm-btn" style="padding: 4px 8px; font-size: 11px;" title="Confirmar realização antecipada">
+                Confirmar
+              </button>
               <button class="btn btn-secondary future-edit-btn" style="padding: 4px 8px; font-size: 11px;" title="Editar esta previsão">
                 Editar
               </button>
