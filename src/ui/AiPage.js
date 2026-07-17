@@ -372,7 +372,7 @@ class AiPage {
   }
 
   static constructContext(app) {
-    const today = "2026-07-13"; // Baseline today
+    const today = new Date().toLocaleDateString('en-CA'); // Baseline today
 
     // Extract active transactions
     const activeTxs = app.getActiveTransactions();

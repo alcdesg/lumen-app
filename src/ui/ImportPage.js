@@ -1,6 +1,6 @@
 class ImportPage {
   static render(app, state) {
-    const today = "2026-07-13"; // Baseline date
+    const today = new Date().toLocaleDateString('en-CA'); // Dynamic local date
 
     // 1. Check if there is an active preview/validation state
     let mainViewHtml = '';
@@ -327,7 +327,7 @@ class ImportPage {
     const cancelBtn = document.getElementById("import-cancel-btn");
     const confirmBtn = document.getElementById("import-confirm-btn");
     
-    const todayStr = "2026-07-13"; // App baseline date
+    const todayStr = new Date().toLocaleDateString('en-CA'); // App baseline date
 
     // Idle dropzone setup
     if (dropzone) {

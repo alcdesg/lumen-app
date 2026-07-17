@@ -2,13 +2,14 @@ class CalendarPage {
   static render(app, state) {
     // 1. Get viewed year and month from state
     if (!state.calendarState) {
+      const now = new Date();
       state.calendarState = {
-        year: 2026,
-        month: 6 // July (0-indexed)
+        year: now.getFullYear(),
+        month: now.getMonth()
       };
     }
     const { year, month } = state.calendarState;
-    const todayStr = "2026-07-13"; // App baseline date
+    const todayStr = new Date().toLocaleDateString('en-CA'); // Dynamic local date
 
     const monthNames = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",

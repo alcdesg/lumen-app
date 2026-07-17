@@ -395,7 +395,7 @@ class ApplicationController {
     quickAddForm.reset();
     
     // Default values
-    const today = "2026-07-13";
+    const today = new Date().toLocaleDateString('en-CA');
     document.getElementById('tx-date').value = dateStr || today;
     document.getElementById('tx-status').value = (dateStr || today) <= today ? 'confirmed' : 'planned';
 
@@ -437,7 +437,7 @@ class ApplicationController {
   }
 
   updateTasksBadge() {
-    const today = "2026-07-13"; // Baseline date
+    const today = new Date().toLocaleDateString('en-CA');
     const pendingCount = this.app.getPendingPlannedTransactions(today).length;
     const badgeEl = document.getElementById("tasks-badge");
     if (badgeEl) {

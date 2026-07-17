@@ -1,6 +1,6 @@
 class PanelPage {
   static render(app) {
-    const today = "2026-07-13"; // App baseline date
+    const today = new Date().toLocaleDateString('en-CA'); // Dynamic local date
     const activeTxs = app.getActiveTransactions();
     
     // 1. Calculate daily balances for 30-day projection

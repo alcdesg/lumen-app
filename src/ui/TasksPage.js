@@ -1,6 +1,6 @@
 class TasksPage {
   static render(app, state) {
-    const today = "2026-07-13"; // App baseline date
+    const today = new Date().toLocaleDateString('en-CA'); // Dynamic local date
     const pendingTxs = app.getPendingPlannedTransactions(today);
 
     // Sort pending chronologically (oldest first)
@@ -302,7 +302,7 @@ class TasksPage {
   }
 
   static initEvents(app, state, appInstance) {
-    const today = "2026-07-13"; // Baseline
+    const today = new Date().toLocaleDateString('en-CA'); // Baseline date
 
     // 1. Reconcile Modal Elements
     const reconcileModal = document.getElementById("reconcile-tx-modal");
