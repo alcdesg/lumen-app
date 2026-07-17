@@ -188,6 +188,28 @@ class LumenApp {
   }
 
   /**
+   * Restores a soft-deleted transaction from the trash bin.
+   */
+  restoreTransaction(id) {
+    const deletedTx = this.transactions.find(t => t.id === id && t.is_deleted);
+    if (!deletedTx) {
+      throw new Error(`Transação ${id} não encontrada na lixeira.`);
+    }
+
+    // Set replacement on deleted version
+    deletedTx.replaced_by_version = deletedTx.version + 1;
+    deletedTx.updated_at = new Date().toISOString();
+
+    // Create restored version (active, is_deleted = false)
+    const restoredTx = deletedTx.createNewVersion({ is_deleted: false });
+    restoredTx.is_active = true;
+    restoredTx.updated_at = new Date().toISOString();
+
+    this.transactions.push(restoredTx);
+    return restoredTx;
+  }
+
+  /**
    * Gets all current active (non-deleted, latest version) transactions.
    */
   getActiveTransactions() {

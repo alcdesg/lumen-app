@@ -413,6 +413,44 @@ test("LumenApp - findMatchingPlannedTransaction Guardrails (Strict Month & Fuzzy
   expect(matchDeduplicated).toBe(undefined);
 });
 
+test("LumenApp - soft-delete and restoreTransaction logic", async () => {
+  const app = new LumenApp();
+  const acc = app.addAccount({ name: "Bradesco", initial_balance: 500 });
+  const cat = app.addCategory({ name: "Lazer", type: "expense" });
+
+  const tx = app.addTransaction({
+    account_id: acc.id,
+    category_id: cat.id,
+    amount: -50,
+    date: "2026-07-17",
+    description: "Cinema Fim de Semana",
+    status: "confirmed"
+  });
+
+  // Verify it exists in active list
+  expect(app.getActiveTransactions().some(t => t.id === tx.id)).toBe(true);
+
+  // Soft delete it
+  app.deleteTransaction(tx.id);
+
+  // Should no longer be active
+  expect(app.getActiveTransactions().some(t => t.id === tx.id)).toBe(false);
+
+  // Find the latest deleted version in database
+  const deleted = app.transactions.find(t => t.id === tx.id && t.is_deleted && !t.replaced_by_version);
+  expect(deleted !== undefined).toBe(true);
+  expect(deleted.is_active).toBe(false);
+
+  // Restore it
+  app.restoreTransaction(tx.id);
+
+  // Should be active again
+  expect(app.getActiveTransactions().some(t => t.id === tx.id)).toBe(true);
+  const restored = app.getActiveTransaction(tx.id);
+  expect(restored.is_deleted).toBe(false);
+  expect(restored.version).toBe(3); // v1 (created) -> v2 (deleted) -> v3 (restored)
+});
+
 
 // --- Execution Logic ---
 async function runTests() {

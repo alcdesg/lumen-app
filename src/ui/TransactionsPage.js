@@ -1,20 +1,32 @@
 class TransactionsPage {
   static render(app, state) {
-    // 1. Initialize filters in state if missing
+    // 1. Initialize filters and sorting in state if missing
     if (!state.txFilters) {
       state.txFilters = {
         search: '',
         type: 'all',
         account: 'all',
         status: 'all',
-        member: 'all'
+        member: 'all',
+        showTrash: false
       };
     }
+    if (!state.txSort) {
+      state.txSort = {
+        column: 'date',
+        direction: 'desc'
+      };
+    }
+    
     const filters = state.txFilters;
+    const sort = state.txSort;
 
-    // 2. Fetch and apply filters to active transactions list
-    const activeTxs = app.getActiveTransactions();
-    const filteredTxs = activeTxs.filter(t => {
+    // 2. Fetch and apply filters to active or deleted transactions list
+    const baseTxs = filters.showTrash
+      ? app.transactions.filter(t => t.is_deleted && !t.replaced_by_version)
+      : app.getActiveTransactions();
+
+    const filteredTxs = baseTxs.filter(t => {
       // Search term match
       if (filters.search && !t.description.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
@@ -35,16 +47,63 @@ class TransactionsPage {
       return true;
     });
 
-    // Sort chronologically descending (newest first)
-    filteredTxs.sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at));
+    // 3. Apply sorting logic
+    filteredTxs.sort((a, b) => {
+      let fieldA, fieldB;
+      
+      switch (sort.column) {
+        case 'date':
+          fieldA = a.date || '';
+          fieldB = b.date || '';
+          break;
+        case 'description':
+          fieldA = (a.description || '').toLowerCase();
+          fieldB = (b.description || '').toLowerCase();
+          break;
+        case 'category':
+          const catA = app.categories.find(c => c.id === a.category_id) || { name: '' };
+          const catB = app.categories.find(c => c.id === b.category_id) || { name: '' };
+          fieldA = catA.name.toLowerCase();
+          fieldB = catB.name.toLowerCase();
+          break;
+        case 'account':
+          const accA = app.accounts.find(ac => ac.id === a.account_id) || { name: '' };
+          const accB = app.accounts.find(ac => ac.id === b.account_id) || { name: '' };
+          fieldA = accA.name.toLowerCase();
+          fieldB = accB.name.toLowerCase();
+          break;
+        case 'member':
+          fieldA = (a.member || 'Casal').toLowerCase();
+          fieldB = (b.member || 'Casal').toLowerCase();
+          break;
+        case 'status':
+          fieldA = (a.status || '').toLowerCase();
+          fieldB = (b.status || '').toLowerCase();
+          break;
+        case 'amount':
+          fieldA = Math.abs(a.amount || 0);
+          fieldB = Math.abs(b.amount || 0);
+          break;
+        default:
+          fieldA = a.date || '';
+          fieldB = b.date || '';
+      }
+      
+      if (fieldA < fieldB) return sort.direction === 'asc' ? -1 : 1;
+      if (fieldA > fieldB) return sort.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
 
-    // 3. Generate filters HTML options
+    // Save filtered list to state for the CSV exporter
+    state.lastFilteredTxs = filteredTxs;
+
+    // 4. Generate filters HTML options
     let accountOptions = '<option value="all">Todas as Contas</option>';
     app.accounts.filter(a => a.is_active).forEach(acc => {
       accountOptions += `<option value="${acc.id}" ${filters.account === acc.id ? 'selected' : ''}>${acc.name}</option>`;
     });
 
-    // 4. Render Table rows
+    // 5. Render Table rows
     let tableRows = '';
     if (filteredTxs.length === 0) {
       tableRows = `
@@ -52,7 +111,7 @@ class TransactionsPage {
           <td colspan="8" class="empty-state">
             <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             <h4>Nenhuma movimentação encontrada</h4>
-            <p>Tente ajustar os seus filtros de pesquisa.</p>
+            <p>${filters.showTrash ? 'A lixeira está vazia.' : 'Tente ajustar os seus filtros de pesquisa.'}</p>
           </td>
         </tr>
       `;
@@ -75,8 +134,26 @@ class TransactionsPage {
           memberBadge = `<span class="badge" style="background-color:var(--bg-base); color:var(--text-secondary); border:1px solid var(--border-color);">Casal</span>`;
         }
 
+        let actionButtons = '';
+        if (filters.showTrash) {
+          actionButtons = `
+            <button class="btn-action-icon restore-tx-btn" title="Restaurar para a lista ativa" style="color: var(--color-income); cursor: pointer;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            </button>
+          `;
+        } else {
+          actionButtons = `
+            <button class="btn-action-icon edit-tx-btn" title="Editar movimentação">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </button>
+            <button class="btn-action-icon btn-delete delete-tx-btn" title="Excluir movimentação">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </button>
+          `;
+        }
+
         tableRows += `
-          <tr data-tx-id="${t.id}">
+          <tr data-tx-id="${t.id}" style="${filters.showTrash ? 'opacity: 0.85; background: rgba(var(--color-expense-rgb), 0.02);' : ''}">
             <td style="font-weight: 500;">${formattedDate}</td>
             <td style="font-weight: 600;">${t.description}</td>
             <td><span class="account-tag" style="background-color:var(--bg-base); border: 1px solid var(--border-color);">${cat.name}</span></td>
@@ -86,22 +163,43 @@ class TransactionsPage {
             <td class="${amountClass}" style="font-weight: 700; font-family: 'Inter', sans-serif;">
               ${sign}${formattedAmount}
             </td>
-            <td class="row-actions">
-              <button class="btn-action-icon edit-tx-btn" title="Editar movimentação">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-              </button>
-              <button class="btn-action-icon btn-delete delete-tx-btn" title="Excluir movimentação">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-              </button>
+            <td class="row-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
+              ${actionButtons}
             </td>
           </tr>
         `;
       });
     }
 
+    // Helper to generate sorted column headers
+    const renderHeader = (colKey, label) => {
+      const isSorted = sort.column === colKey;
+      const arrow = isSorted ? (sort.direction === 'asc' ? ' ▲' : ' ▼') : '';
+      const style = `cursor: pointer; user-select: none; transition: color 0.2s;`;
+      const activeClass = isSorted ? 'style="color: var(--accent-secondary); font-weight: 700;"' : '';
+      return `<th class="sortable-header" data-col="${colKey}" style="${style}" ${activeClass}>${label}${arrow}</th>`;
+    };
+
     return `
-      <div class="table-card animate-fade-in">
+      <div class="table-card animate-fade-in" style="display:flex; flex-direction:column; gap:16px;">
         
+        <!-- Top Toolbar with Actions and Filters -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 4px 0;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-secondary" id="tx-export-csv-btn" style="padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px;" title="Exportar tabela atual para planilha (Excel)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+              Exportar CSV
+            </button>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(var(--color-expense-rgb), 0.05); border: 1px dashed var(--border-color); border-radius: 6px;">
+              <input type="checkbox" id="tx-toggle-trash" ${filters.showTrash ? 'checked' : ''} style="cursor: pointer; width: 14px; height: 14px; accent-color: var(--color-expense);">
+              <label for="tx-toggle-trash" style="font-size: 12px; color: var(--text-secondary); cursor: pointer; font-weight: 600; user-select: none;">Exibir Lixeira</label>
+            </div>
+          </div>
+        </div>
+
         <!-- Filters Row -->
         <div class="table-header-filters">
           <div class="search-input-wrapper">
@@ -140,13 +238,13 @@ class TransactionsPage {
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 110px;">Data</th>
-                <th>Descrição</th>
-                <th style="width: 130px;">Categoria</th>
-                <th style="width: 130px;">Conta</th>
-                <th style="width: 110px;">Responsável</th>
-                <th style="width: 100px;">Status</th>
-                <th style="width: 120px;">Valor</th>
+                ${renderHeader('date', 'Data')}
+                ${renderHeader('description', 'Descrição')}
+                ${renderHeader('category', 'Categoria')}
+                ${renderHeader('account', 'Conta')}
+                ${renderHeader('member', 'Responsável')}
+                ${renderHeader('status', 'Status')}
+                ${renderHeader('amount', 'Valor')}
                 <th style="width: 90px; text-align: right;">Ações</th>
               </tr>
             </thead>
@@ -236,15 +334,17 @@ class TransactionsPage {
     const filterAccount = document.getElementById("tx-filter-account");
     const filterStatus = document.getElementById("tx-filter-status");
     const filterMember = document.getElementById("tx-filter-member");
+    const toggleTrash = document.getElementById("tx-toggle-trash");
 
     // Bind filters changes
     const updateFilters = () => {
       state.txFilters = {
-        search: searchInput.value,
-        type: filterType.value,
-        account: filterAccount.value,
-        status: filterStatus.value,
-        member: filterMember.value
+        search: searchInput ? searchInput.value : '',
+        type: filterType ? filterType.value : 'all',
+        account: filterAccount ? filterAccount.value : 'all',
+        status: filterStatus ? filterStatus.value : 'all',
+        member: filterMember ? filterMember.value : 'all',
+        showTrash: toggleTrash ? toggleTrash.checked : false
       };
       appInstance.renderActivePage(); // Reload table
     };
@@ -256,6 +356,27 @@ class TransactionsPage {
       filterStatus.addEventListener("change", updateFilters);
       filterMember.addEventListener("change", updateFilters);
     }
+    if (toggleTrash) {
+      toggleTrash.addEventListener("change", updateFilters);
+    }
+
+    // Interactive Sorting Events
+    const headers = document.querySelectorAll(".sortable-header");
+    headers.forEach(h => {
+      h.addEventListener("click", (e) => {
+        const col = e.currentTarget.getAttribute("data-col");
+        if (!state.txSort) {
+          state.txSort = { column: 'date', direction: 'desc' };
+        }
+        if (state.txSort.column === col) {
+          state.txSort.direction = state.txSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          state.txSort.column = col;
+          state.txSort.direction = col === 'amount' || col === 'date' ? 'desc' : 'asc';
+        }
+        appInstance.renderActivePage();
+      });
+    });
 
     // Delete transaction action
     const deleteBtns = document.querySelectorAll(".delete-tx-btn");
@@ -265,17 +386,87 @@ class TransactionsPage {
         const txId = row.getAttribute("data-tx-id");
         const tx = app.getActiveTransaction(txId);
         
-        if (confirm(`Deseja realmente excluir "${tx.description}"? \nIsso não apagará o registro físico, apenas criará um histórico de exclusão lógica para auditoria.`)) {
+        if (confirm(`Deseja realmente excluir "${tx.description}"? \nIsso moverá a movimentação para a lixeira.`)) {
           try {
             app.deleteTransaction(txId);
             await app.save();
-            appInstance.renderActivePage(); // Reload view
+            
+            if (typeof appInstance.updateTasksBadge === 'function') {
+              appInstance.updateTasksBadge();
+            }
+            appInstance.renderActivePage();
           } catch (err) {
             alert(err.message);
           }
         }
       });
     });
+
+    // Restore transaction action
+    const restoreBtns = document.querySelectorAll(".restore-tx-btn");
+    restoreBtns.forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const row = e.target.closest("tr");
+        const txId = row.getAttribute("data-tx-id");
+        // Look for the deleted version in the full database
+        const tx = app.transactions.find(t => t.id === txId && t.is_deleted && !t.replaced_by_version);
+        
+        if (tx) {
+          if (confirm(`Deseja restaurar a movimentação "${tx.description}" de R$ ${Math.abs(tx.amount).toFixed(2)} de volta para a lista ativa?`)) {
+            try {
+              app.restoreTransaction(txId);
+              await app.save();
+              
+              if (typeof appInstance.updateTasksBadge === 'function') {
+                appInstance.updateTasksBadge();
+              }
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert(err.message);
+            }
+          }
+        }
+      });
+    });
+
+    // CSV Exporter logic
+    const exportBtn = document.getElementById("tx-export-csv-btn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        const txsToExport = state.lastFilteredTxs || [];
+        if (txsToExport.length === 0) {
+          alert("Não há dados para exportar com os filtros atuais.");
+          return;
+        }
+
+        // CSV headers
+        const headers = ["Data", "Descricao", "Categoria", "Conta", "Responsavel", "Status", "Valor (R$)"];
+        const rows = txsToExport.map(t => {
+          const cat = app.categories.find(c => c.id === t.category_id) || { name: 'Sem Categoria' };
+          const acc = app.accounts.find(a => a.id === t.account_id) || { name: 'Sem Conta' };
+          return [
+            t.date,
+            `"${t.description.replace(/"/g, '""')}"`,
+            `"${cat.name.replace(/"/g, '""')}"`,
+            `"${acc.name.replace(/"/g, '""')}"`,
+            t.member || 'Casal',
+            t.status === 'confirmed' ? 'Realizado' : 'Previsto',
+            t.amount
+          ];
+        });
+
+        // Add Byte Order Mark (BOM) for correct UTF-8 loading in Excel
+        const csvContent = "\uFEFF" + [headers.join(",")].concat(rows.map(r => r.join(","))).join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `lumen_export_${new Date().toLocaleDateString('en-CA')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
 
     // Edit transaction overlay handles
     const editModal = document.getElementById("edit-tx-modal");
@@ -308,8 +499,10 @@ class TransactionsPage {
       catSelect.innerHTML = catOptions;
     };
 
-    editToggleExpense.addEventListener("click", () => setEditType('expense'));
-    editToggleIncome.addEventListener("click", () => setEditType('income'));
+    if (editToggleExpense && editToggleIncome) {
+      editToggleExpense.addEventListener("click", () => setEditType('expense'));
+      editToggleIncome.addEventListener("click", () => setEditType('income'));
+    }
 
     const editBtns = document.querySelectorAll(".edit-tx-btn");
     editBtns.forEach(btn => {
@@ -386,6 +579,10 @@ class TransactionsPage {
           });
           await app.save();
           closeEdit();
+          
+          if (typeof appInstance.updateTasksBadge === 'function') {
+            appInstance.updateTasksBadge();
+          }
           appInstance.renderActivePage(); // Reload table
         } catch (err) {
           alert(err.message);
