@@ -97,7 +97,7 @@ class AiPage {
             </div>
             <div>
               <h3 style="font-size: 16px; margin: 0; border: none; padding: 0;">Lumen IA</h3>
-              <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Online • Análise financeira baseada em Gemini 3.5 Flash</p>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Online • Análise financeira baseada em Gemini 1.5 Flash</p>
             </div>
           </div>
           
@@ -269,7 +269,7 @@ class AiPage {
 
       try {
         const context = AiPage.constructContext(app);
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         // 2. Prepare payload contents with multi-turn history (excluding static greeting at index 0)
         const activeConversations = history.filter((msg, idx) => !(idx === 0 && msg.role === "model"));
