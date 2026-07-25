@@ -245,31 +245,61 @@ class Storage {
   constructor() {
     this.directoryHandle = null;
     this.isUsingFileSystem = false;
+    this.supabase = null;
+    this.isUsingSupabase = false;
   }
 
   /**
-   * Initializes the storage. Checks if a directory handle was previously saved.
-   * If yes, prompts the browser to request permission.
+   * Initializes the storage. Checks if a directory handle or Supabase connection was previously saved.
    */
   async init() {
-    try {
-      const savedHandle = await dbHelper.get("onedrive_dir_handle");
-      if (savedHandle) {
-        // Check if we already have permission, or request it
-        const opts = { mode: "readwrite" };
-        if ((await savedHandle.queryPermission(opts)) === "granted") {
-          this.directoryHandle = savedHandle;
-          this.isUsingFileSystem = true;
-          console.log("Conectado com sucesso ao diretório do OneDrive persistido.");
-        } else {
-          console.log("Diretório OneDrive persistido encontrado, necessita de re-autorização.");
+    // 1. Initialize Supabase if connected
+    const savedUrl = localStorage.getItem("lumen_supabase_url");
+    const savedKey = localStorage.getItem("lumen_supabase_key");
+    const isConnected = localStorage.getItem("lumen_supabase_connected") === "true";
+
+    if (savedUrl && savedKey && isConnected && window.supabase) {
+      try {
+        let cleanUrl = savedUrl.trim().replace(/\/$/, "");
+        if (cleanUrl.endsWith("/rest/v1")) {
+          cleanUrl = cleanUrl.slice(0, -8).replace(/\/$/, "");
         }
+        const client = window.supabase.createClient(cleanUrl, savedKey);
+        const { data: { session } } = await client.auth.getSession();
+        if (session) {
+          this.supabase = client;
+          this.isUsingSupabase = true;
+          console.log("Conectado com sucesso ao Supabase Cloud.");
+        } else {
+          console.warn("Sessão do Supabase expirada. Necessário fazer login novamente.");
+          this.isUsingSupabase = false;
+        }
+      } catch (err) {
+        console.error("Erro ao restabelecer conexão com o Supabase:", err);
+        this.isUsingSupabase = false;
       }
-    } catch (e) {
-      console.warn("IndexedDB indisponível ou erro na inicialização:", e);
     }
 
-    // Initialize LocalStorage with seed data if completely empty
+    // 2. Fallback to check OneDrive if not using Supabase
+    if (!this.isUsingSupabase) {
+      try {
+        const savedHandle = await dbHelper.get("onedrive_dir_handle");
+        if (savedHandle) {
+          const opts = { mode: "readwrite" };
+          if ((await savedHandle.queryPermission(opts)) === "granted") {
+            this.directoryHandle = savedHandle;
+            this.isUsingFileSystem = true;
+            console.log("Conectado com sucesso ao diretório do OneDrive persistido.");
+          } else {
+            console.log("Diretório OneDrive persistido encontrado, necessita de re-autorização.");
+          }
+        }
+      } catch (e) {
+        console.warn("IndexedDB indisponível ou erro na inicialização do OneDrive:", e);
+      }
+    }
+
+    // 3. Initialize LocalStorage with seed data if completely empty
     if (!localStorage.getItem("lumen_accounts")) {
       localStorage.setItem("lumen_accounts", JSON.stringify(DEFAULT_ACCOUNTS));
       localStorage.setItem("lumen_categories", JSON.stringify(DEFAULT_CATEGORIES));
@@ -277,6 +307,57 @@ class Storage {
       localStorage.setItem("lumen_batches", JSON.stringify([]));
       localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
     }
+  }
+
+  /**
+   * Log into Supabase database, persisting connection parameters.
+   */
+  async loginSupabase(url, anonKey, email, password) {
+    if (!window.supabase) {
+      throw new Error("A biblioteca do Supabase não foi carregada no navegador.");
+    }
+
+    let cleanUrl = url.trim().replace(/\/$/, "");
+    if (cleanUrl.endsWith("/rest/v1")) {
+      cleanUrl = cleanUrl.slice(0, -8).replace(/\/$/, "");
+    }
+
+    const client = window.supabase.createClient(cleanUrl, anonKey);
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    this.supabase = client;
+    this.isUsingSupabase = true;
+    localStorage.setItem("lumen_supabase_url", cleanUrl);
+    localStorage.setItem("lumen_supabase_key", anonKey);
+    localStorage.setItem("lumen_supabase_connected", "true");
+
+    // Also disable OneDrive if active to prevent dual synchronization
+    this.directoryHandle = null;
+    this.isUsingFileSystem = false;
+    await dbHelper.delete("onedrive_dir_handle");
+
+    return data;
+  }
+
+  /**
+   * Log out from Supabase database.
+   */
+  async logoutSupabase() {
+    if (this.supabase) {
+      await this.supabase.auth.signOut();
+    }
+    this.supabase = null;
+    this.isUsingSupabase = false;
+    localStorage.removeItem("lumen_supabase_connected");
+    localStorage.removeItem("lumen_supabase_url");
+    localStorage.removeItem("lumen_supabase_key");
+  }
+
+  isSupabaseConnected() {
+    return this.isUsingSupabase && this.supabase !== null;
   }
 
   /**
@@ -365,6 +446,49 @@ class Storage {
    * Loads all relational data tables.
    */
   async loadData() {
+    if (this.isUsingSupabase && this.supabase) {
+      try {
+        console.log("Lendo dados diretamente do Supabase Cloud...");
+        const { data: accounts, error: errAcc } = await this.supabase.from("accounts").select("*");
+        if (errAcc) throw errAcc;
+
+        const { data: categories, error: errCat } = await this.supabase.from("categories").select("*");
+        if (errCat) throw errCat;
+
+        const { data: transactions, error: errTx } = await this.supabase.from("transactions").select("*");
+        if (errTx) throw errTx;
+
+        const { data: batches, error: errBat } = await this.supabase.from("batches").select("*");
+        if (errBat) throw errBat;
+
+        const { data: settings, error: errSet } = await this.supabase.from("settings").select("*");
+        if (errSet) throw errSet;
+
+        // Reconstruct settings object from key-value rows
+        let settingsObj = { couple_names: "Paula & Alcides" };
+        if (settings && settings.length > 0) {
+          settings.forEach(s => {
+            settingsObj[s.key] = s.value;
+          });
+        }
+
+        const data = {
+          accounts: accounts || [],
+          categories: categories || [],
+          transactions: transactions || [],
+          batches: batches || [],
+          settings: settingsObj
+        };
+
+        // Cache locally for offline read availability
+        this.saveToLocalStorage(data);
+        return data;
+      } catch (e) {
+        console.error("Falha ao carregar do Supabase Cloud:", e);
+        throw new Error("Erro ao carregar do Supabase: " + e.message);
+      }
+    }
+
     if (this.isUsingFileSystem && this.directoryHandle) {
       try {
         const accounts = await this.readJsonFile("accounts.json");
@@ -398,6 +522,47 @@ class Storage {
   async saveData({ accounts, categories, transactions, batches, settings }) {
     const data = { accounts, categories, transactions, batches, settings };
     
+    if (this.isUsingSupabase && this.supabase) {
+      try {
+        console.log("Gravando dados diretamente no Supabase Cloud...");
+        const { data: { user } } = await this.supabase.auth.getUser();
+        if (!user) {
+          throw new Error("Usuário não autenticado no Supabase.");
+        }
+
+        // Add user_id to all rows
+        const accountsWithUser = accounts.map(a => ({ ...a, user_id: user.id }));
+        const categoriesWithUser = categories.map(c => ({ ...c, user_id: user.id }));
+        const batchesWithUser = batches.map(b => ({ ...b, user_id: user.id }));
+        const txsWithUser = transactions.map(t => ({ ...t, user_id: user.id }));
+        const settingsRows = Object.entries(settings || {}).map(([key, val]) => ({
+          key,
+          value: val,
+          user_id: user.id
+        }));
+
+        // Upsert all tables in parallel
+        const results = await Promise.all([
+          this.supabase.from("accounts").upsert(accountsWithUser),
+          this.supabase.from("categories").upsert(categoriesWithUser),
+          this.supabase.from("batches").upsert(batchesWithUser),
+          this.supabase.from("transactions").upsert(txsWithUser),
+          this.supabase.from("settings").upsert(settingsRows)
+        ]);
+
+        for (const res of results) {
+          if (res.error) throw res.error;
+        }
+
+        // Also save to local storage for quick access
+        this.saveToLocalStorage(data);
+        return;
+      } catch (e) {
+        console.error("Falha ao salvar no Supabase Cloud:", e);
+        throw new Error("Falha ao salvar na nuvem: " + e.message);
+      }
+    }
+
     // 1. Always save to LocalStorage for offline performance & safety
     this.saveToLocalStorage(data);
 
@@ -410,6 +575,17 @@ class Storage {
         throw new Error("Erro de sincronização com o OneDrive. Suas alterações foram salvas localmente no navegador.");
       }
     }
+  }
+
+  /**
+   * Pushes current local storage database state to the Supabase Cloud.
+   */
+  async migrateLocalDataToSupabase() {
+    if (!this.isUsingSupabase || !this.supabase) {
+      throw new Error("Supabase não está conectado.");
+    }
+    const localData = this.loadFromLocalStorage();
+    await this.saveData(localData);
   }
 
   // --- File System Helpers ---

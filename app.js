@@ -51,8 +51,8 @@ class ApplicationController {
     // 4. Setup global DOM event listeners
     this.setupGlobalEvents();
 
-    // 5. Update OneDrive UI pill indicator
-    this.updateOneDriveUI();
+    // 5. Update connection UI indicators
+    this.updateSyncUI();
 
     // 5.5 Update Tasks Badge counter
     this.updateTasksBadge();
@@ -77,7 +77,7 @@ class ApplicationController {
       this.selectUserInSetup(activeUser);
     }
 
-    if (this.storage.isOneDriveConnected()) {
+    if (this.storage.isSupabaseConnected() || this.storage.isOneDriveConnected()) {
       setupScreen.classList.remove('active');
       if (warningBar) warningBar.style.display = 'none';
     } else {
@@ -101,6 +101,7 @@ class ApplicationController {
     const btnPaula = document.getElementById('btn-user-paula');
     const btnAlcides = document.getElementById('btn-user-alcides');
     const connectBtn = document.getElementById('setup-connect-btn');
+    const sbShowBtn = document.getElementById('setup-supabase-show-btn');
     
     if (btnPaula && btnAlcides) {
       if (username === 'Paula') {
@@ -118,6 +119,10 @@ class ApplicationController {
       if (statusMsg && !statusMsg.innerHTML.includes("Pasta anterior")) {
         statusMsg.innerHTML = `Pronto! Clique acima para conectar seu OneDrive como <strong>${username}</strong>.`;
       }
+    }
+
+    if (sbShowBtn) {
+      sbShowBtn.removeAttribute('disabled');
     }
   }
 
@@ -215,25 +220,54 @@ class ApplicationController {
   }
 
   /**
-   * Updates the OneDrive synchronization pill in the sidebar.
+   * Updates the synchronization pills in the sidebar (both OneDrive and Supabase).
    */
-  updateOneDriveUI() {
-    const pill = document.getElementById('onedrive-sync-pill');
-    const connectBtn = document.getElementById('connect-onedrive-btn');
-    const statusText = pill.querySelector('.pill-text');
+  updateSyncUI() {
+    const odPill = document.getElementById('onedrive-sync-pill');
+    const odConnectBtn = document.getElementById('connect-onedrive-btn');
+    const odStatusText = odPill ? odPill.querySelector('.pill-text') : null;
 
-    if (this.storage.isOneDriveConnected()) {
-      pill.classList.remove('disconnected');
-      pill.classList.add('connected');
-      statusText.textContent = 'OneDrive Ativo';
-      connectBtn.textContent = 'Desconectar';
-      connectBtn.title = 'Desconectar da pasta do OneDrive';
+    const sbPill = document.getElementById('supabase-sync-pill');
+    const sbConnectBtn = document.getElementById('connect-supabase-sidebar-btn');
+    const sbStatusText = sbPill ? sbPill.querySelector('.pill-text') : null;
+
+    const isSbConnected = this.storage.isSupabaseConnected();
+    const isOdConnected = this.storage.isOneDriveConnected();
+
+    if (isSbConnected) {
+      if (odPill) odPill.style.display = 'none';
+      if (sbPill) {
+        sbPill.style.display = 'flex';
+        sbPill.classList.remove('disconnected');
+        sbPill.classList.add('connected');
+        if (sbStatusText) sbStatusText.textContent = 'Supabase Ativo';
+        if (sbConnectBtn) {
+          sbConnectBtn.textContent = 'Desconectar';
+          sbConnectBtn.title = 'Desconectar do Supabase Cloud';
+        }
+      }
     } else {
-      pill.classList.remove('connected');
-      pill.classList.add('disconnected');
-      statusText.textContent = 'Local (Offline)';
-      connectBtn.textContent = 'Conectar';
-      connectBtn.title = 'Conectar pasta do OneDrive para backup';
+      if (sbPill) sbPill.style.display = 'none';
+      if (odPill) {
+        odPill.style.display = 'flex';
+        if (isOdConnected) {
+          odPill.classList.remove('disconnected');
+          odPill.classList.add('connected');
+          if (odStatusText) odStatusText.textContent = 'OneDrive Ativo';
+          if (odConnectBtn) {
+            odConnectBtn.textContent = 'Desconectar';
+            odConnectBtn.title = 'Desconectar da pasta do OneDrive';
+          }
+        } else {
+          odPill.classList.remove('connected');
+          odPill.classList.add('disconnected');
+          if (odStatusText) odStatusText.textContent = 'Local (Offline)';
+          if (odConnectBtn) {
+            odConnectBtn.textContent = 'Conectar';
+            odConnectBtn.title = 'Conectar pasta do OneDrive para backup';
+          }
+        }
+      }
     }
   }
 
@@ -260,7 +294,7 @@ class ApplicationController {
           if (connected) {
             await this.app.init();
             this.updateWelcomeText();
-            this.updateOneDriveUI();
+            this.updateSyncUI();
             const setupScreen = document.getElementById('setup-screen');
             if (setupScreen) setupScreen.classList.remove('active');
             const warningBar = document.getElementById('demo-warning-bar');
@@ -283,6 +317,66 @@ class ApplicationController {
       });
     }
 
+    // 0.5 Supabase setup screen events
+    const setupSbShowBtn = document.getElementById('setup-supabase-show-btn');
+    const setupSbForm = document.getElementById('setup-supabase-form');
+    if (setupSbShowBtn && setupSbForm) {
+      setupSbShowBtn.addEventListener('click', () => {
+        setupSbForm.style.display = 'flex';
+        setupSbShowBtn.style.display = 'none';
+      });
+
+      setupSbForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = document.getElementById('setup-sb-url').value.trim();
+        const key = document.getElementById('setup-sb-key').value.trim();
+        const email = document.getElementById('setup-sb-email').value.trim();
+        const pass = document.getElementById('setup-sb-pass').value;
+
+        const submitBtn = setupSbForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Conectando Nuvem...';
+        submitBtn.setAttribute('disabled', 'true');
+
+        try {
+          // Connect and authenticate
+          await this.storage.loginSupabase(url, key, email, pass);
+          localStorage.setItem('lumen_supabase_email', email);
+
+          // Initialize app with Supabase cloud data
+          await this.app.init();
+
+          // Auto-migration check: If Supabase is empty but LocalStorage has data, prompt to migrate
+          if (this.app.accounts.length === 0 && this.app.transactions.length === 0) {
+            const localData = this.storage.loadFromLocalStorage();
+            if (localData.accounts.length > 0 || localData.transactions.length > 0) {
+              if (confirm("Seu banco de dados do Supabase parece estar vazio, mas você possui dados locais salvos. Deseja enviar seus dados locais para o Supabase agora?")) {
+                await this.storage.migrateLocalDataToSupabase();
+                await this.app.init(); // Reload from cloud
+              }
+            }
+          }
+
+          // Hide setup screen
+          const setupScreen = document.getElementById('setup-screen');
+          if (setupScreen) setupScreen.classList.remove('active');
+          const warningBar = document.getElementById('demo-warning-bar');
+          if (warningBar) warningBar.style.display = 'none';
+
+          // Update header & pills
+          this.updateWelcomeText();
+          this.updateSyncUI();
+          this.renderActivePage();
+
+          alert('Conectado ao Supabase Cloud com sucesso! Seus dados estão sincronizados.');
+        } catch (err) {
+          alert('Erro de conexão com o Supabase: ' + err.message);
+          submitBtn.textContent = originalText;
+          submitBtn.removeAttribute('disabled');
+        }
+      });
+    }
+
     // 1. OneDrive Connection Button
     const connectBtn = document.getElementById('connect-onedrive-btn');
     connectBtn.addEventListener('click', async () => {
@@ -290,7 +384,7 @@ class ApplicationController {
         if (confirm('Deseja desconectar a pasta do OneDrive? O aplicativo voltará a salvar os dados no navegador.')) {
           await this.storage.disconnectOneDriveFolder();
           await this.app.init(); // Reload from localStorage
-          this.updateOneDriveUI();
+          this.updateSyncUI();
           const warningBar = document.getElementById('demo-warning-bar');
           if (warningBar) warningBar.style.display = 'block';
           this.renderActivePage();
@@ -301,7 +395,7 @@ class ApplicationController {
           const connected = await this.storage.connectOneDriveFolder();
           if (connected) {
             await this.app.init(); // Reload from files
-            this.updateOneDriveUI();
+            this.updateSyncUI();
             const warningBar = document.getElementById('demo-warning-bar');
             if (warningBar) warningBar.style.display = 'none';
             this.renderActivePage();
@@ -311,6 +405,26 @@ class ApplicationController {
         }
       }
     });
+
+    // 1.5 Supabase Sidebar Disconnect Button
+    const sbSidebarBtn = document.getElementById('connect-supabase-sidebar-btn');
+    if (sbSidebarBtn) {
+      sbSidebarBtn.addEventListener('click', async () => {
+        if (confirm('Deseja mesmo desconectar do Supabase Cloud? O aplicativo voltará ao modo local offline.')) {
+          try {
+            await this.storage.logoutSupabase();
+            await this.app.init(); // Reload from localStorage
+            this.updateSyncUI();
+            const warningBar = document.getElementById('demo-warning-bar');
+            if (warningBar) warningBar.style.display = 'block';
+            this.renderActivePage();
+            alert('Desconectado do Supabase Cloud. Voltando ao banco local do navegador.');
+          } catch (err) {
+            alert('Erro ao desconectar: ' + err.message);
+          }
+        }
+      });
+    }
 
     // 2. Quick Add Modal triggers
     const quickAddModal = document.getElementById('quick-add-modal');
