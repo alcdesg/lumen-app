@@ -124,6 +124,59 @@ class SettingsPage {
           `}
         </div>
 
+        <!-- Access Control / UAC Settings Card -->
+        <div class="section-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
+            <span>Controle de Acesso & UAC</span>
+            <span style="font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: bold; background: var(--accent-primary); color: white;">
+              Segurança Ativa
+            </span>
+          </h4>
+          
+          <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Defina a senha mestra utilizada pelo Controle de Contas (UAC) para autorizar ações restritas e gerencie perfis de acesso de convidados.
+          </p>
+          
+          <form id="settings-uac-config-form" style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label for="settings-uac-master-pass" style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Senha Mestra do Administrador (UAC)</label>
+              <input type="password" id="settings-uac-master-pass" value="${app.settings.admin_master_password || 'admin123'}" required style="padding: 8px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px; font-family: inherit;">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Mapeamento de Perfis de Acesso</label>
+              <div id="uac-roles-list" style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                  <span style="font-family: monospace; color: var(--text-muted);">neto_gurgel@hotmail.com</span>
+                  <span class="badge" style="background: var(--color-income-bg); color: var(--color-income);">Administrador Master</span>
+                </div>
+                ${Object.entries(app.settings.user_roles || {}).map(([email, role]) => `
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; padding-top: 4px;">
+                    <span style="font-family: monospace;">${email}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="badge" style="background: ${role === 'editor' ? 'var(--color-warning-bg)' : 'rgba(255,255,255,0.05)'}; color: ${role === 'editor' ? 'var(--color-warning)' : 'var(--text-muted)'};">${role === 'editor' ? 'Editor' : 'Leitor'}</span>
+                      <button type="button" class="remove-role-btn btn" data-email="${email}" style="padding: 2px 6px; font-size: 10px; border-color: var(--color-expense); color: var(--color-expense); height: auto; cursor: pointer;">Excluir</button>
+                    </div>
+                  </div>
+                `).join("")}
+                
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                  <input type="email" id="new-role-email" placeholder="email@exemplo.com" style="flex: 1; padding: 6px; font-size: 11px; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
+                  <select id="new-role-select" style="padding: 6px; font-size: 11px; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Leitor</option>
+                  </select>
+                  <button type="button" id="add-role-mapping-btn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; height: auto; cursor: pointer;">Adicionar</button>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; margin-top: 4px; cursor: pointer;">
+              Salvar Configurações UAC
+            </button>
+          </form>
+        </div>
+
       </div>
     `;
   }
@@ -181,110 +234,187 @@ class SettingsPage {
     // 3. Handle Supabase Connection Form Submit
     const sbForm = document.getElementById("supabase-settings-form");
     if (sbForm) {
-      sbForm.addEventListener("submit", async (e) => {
+      sbForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const url = document.getElementById("sb-settings-url").value.trim();
         const key = document.getElementById("sb-settings-key").value.trim();
         const email = document.getElementById("sb-settings-email").value.trim();
         const pass = document.getElementById("sb-settings-pass").value;
 
-        const btn = sbForm.querySelector("button[type='submit']");
-        const originalText = btn.textContent;
-        btn.textContent = "Conectando...";
-        btn.setAttribute("disabled", "true");
+        app.requestAdminAuthorization("Conectar ao Supabase Cloud", async () => {
+          const btn = sbForm.querySelector("button[type='submit']");
+          const originalText = btn.textContent;
+          btn.textContent = "Conectando...";
+          btn.setAttribute("disabled", "true");
 
-        try {
-          // Log into Supabase
-          await appInstance.storage.loginSupabase(url, key, email, pass);
-          localStorage.setItem("lumen_supabase_email", email);
+          try {
+            // Log into Supabase
+            await appInstance.storage.loginSupabase(url, key, email, pass);
+            localStorage.setItem("lumen_supabase_email", email);
 
-           // Force load of fresh database records from Cloud
-          await app.init();
+            // Force load of fresh database records from Cloud
+            await app.init();
 
-          // Auto-migration check: If Supabase is empty but LocalStorage has data, prompt to migrate
-          if (app.accounts.length === 0 && app.transactions.length === 0) {
-            const localData = appInstance.storage.loadFromLocalStorage();
-            if (localData.accounts.length > 0 || localData.transactions.length > 0) {
-              if (confirm("Seu banco de dados do Supabase parece estar vazio, mas você possui dados locais salvos. Deseja enviar seus dados locais para o Supabase agora?")) {
-                await appInstance.storage.migrateLocalDataToSupabase();
-                await app.init(); // Reload from cloud
+            // Auto-migration check: If Supabase is empty but LocalStorage has data, prompt to migrate
+            if (app.accounts.length === 0 && app.transactions.length === 0) {
+              const localData = appInstance.storage.loadFromLocalStorage();
+              if (localData.accounts.length > 0 || localData.transactions.length > 0) {
+                if (confirm("Seu banco de dados do Supabase parece estar vazio, mas você possui dados locais salvos. Deseja enviar seus dados locais para o Supabase agora?")) {
+                  await appInstance.storage.migrateLocalDataToSupabase();
+                  await app.init(); // Reload from cloud
+                }
               }
             }
+
+            // Refresh application headers
+            appInstance.updateWelcomeText();
+            appInstance.updateSyncUI();
+
+            // Display Supabase sync pill in sidebar and hide OneDrive
+            const sbPill = document.getElementById("supabase-sync-pill");
+            const odPill = document.getElementById("onedrive-sync-pill");
+            if (sbPill) {
+              sbPill.style.display = "flex";
+              sbPill.classList.remove("disconnected");
+              sbPill.classList.add("connected");
+              if (sbPill.querySelector(".pill-text")) sbPill.querySelector(".pill-text").textContent = "Supabase Ativo";
+            }
+            if (odPill) odPill.style.display = "none";
+
+            alert("Conectado ao Supabase Cloud com sucesso! Seus dados estão sincronizados.");
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert("Erro de conexão com o Supabase: " + err.message);
+            btn.textContent = originalText;
+            btn.removeAttribute("disabled");
           }
-
-          // Refresh application headers
-          appInstance.updateWelcomeText();
-          appInstance.updateSyncUI();
-
-          // Display Supabase sync pill in sidebar and hide OneDrive
-          const sbPill = document.getElementById("supabase-sync-pill");
-          const odPill = document.getElementById("onedrive-sync-pill");
-          if (sbPill) {
-            sbPill.style.display = "flex";
-            sbPill.classList.remove("disconnected");
-            sbPill.classList.add("connected");
-            if (sbPill.querySelector(".pill-text")) sbPill.querySelector(".pill-text").textContent = "Supabase Ativo";
-          }
-          if (odPill) odPill.style.display = "none";
-
-          alert("Conectado ao Supabase Cloud com sucesso! Seus dados estão sincronizados.");
-          appInstance.renderActivePage();
-        } catch (err) {
-          alert("Erro de conexão com o Supabase: " + err.message);
-          btn.textContent = originalText;
-          btn.removeAttribute("disabled");
-        }
+        });
       });
     }
 
     // 4. Handle Supabase Disconnect Click
     const btnDisconnect = document.getElementById("btn-supabase-disconnect");
     if (btnDisconnect) {
-      btnDisconnect.addEventListener("click", async () => {
-        if (confirm("Deseja mesmo desconectar do Supabase Cloud? O aplicativo voltará ao modo local offline.")) {
-          try {
-            await appInstance.storage.logoutSupabase();
-            
-            // Reinitialize local state from LocalStorage
-            await app.init();
+      btnDisconnect.addEventListener("click", () => {
+        app.requestAdminAuthorization("Desconectar do Supabase Cloud", async () => {
+          if (confirm("Deseja mesmo desconectar do Supabase Cloud? O aplicativo voltará ao modo local offline.")) {
+            try {
+              await appInstance.storage.logoutSupabase();
+              
+              // Reinitialize local state from LocalStorage
+              await app.init();
 
-            // Adjust sidebar pills
-            const sbPill = document.getElementById("supabase-sync-pill");
-            const odPill = document.getElementById("onedrive-sync-pill");
-            if (sbPill) sbPill.style.display = "none";
-            if (odPill) odPill.style.display = "flex";
+              // Adjust sidebar pills
+              const sbPill = document.getElementById("supabase-sync-pill");
+              const odPill = document.getElementById("onedrive-sync-pill");
+              if (sbPill) sbPill.style.display = "none";
+              if (odPill) odPill.style.display = "flex";
 
-            appInstance.updateWelcomeText();
-            appInstance.updateSyncUI();
+              appInstance.updateWelcomeText();
+              appInstance.updateSyncUI();
 
-            alert("Desconectado do Supabase Cloud. Voltando ao banco local do navegador.");
-            appInstance.renderActivePage();
-          } catch (err) {
-            alert("Erro ao desconectar: " + err.message);
+              alert("Desconectado do Supabase Cloud. Voltando ao banco local do navegador.");
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert("Erro ao desconectar: " + err.message);
+            }
           }
-        }
+        });
       });
     }
 
     // 5. Handle Supabase Migration (push local storage -> cloud)
     const btnMigrate = document.getElementById("btn-supabase-migrate");
     if (btnMigrate) {
-      btnMigrate.addEventListener("click", async () => {
-        if (confirm("Isso enviará todos os seus dados locais atuais (contas, categorias, transações) para o Supabase, sobrescrevendo itens com o mesmo ID na nuvem. Deseja prosseguir?")) {
-          const originalText = btnMigrate.textContent;
-          btnMigrate.textContent = "Sincronizando...";
-          btnMigrate.setAttribute("disabled", "true");
-          try {
-            await appInstance.storage.migrateLocalDataToSupabase();
-            alert("Migração concluída! Todos os dados locais atuais foram copiados para o Supabase Cloud.");
-            appInstance.renderActivePage();
-          } catch (err) {
-            alert("Falha ao exportar dados: " + err.message);
-            btnMigrate.textContent = originalText;
-            btnMigrate.removeAttribute("disabled");
+      btnMigrate.addEventListener("click", () => {
+        app.requestAdminAuthorization("Exportar Dados Locais para Nuvem", async () => {
+          if (confirm("Isso enviará todos os seus dados locais atuais (contas, categorias, transações) para o Supabase, sobrescrevendo itens com o mesmo ID na nuvem. Deseja prosseguir?")) {
+            const originalText = btnMigrate.textContent;
+            btnMigrate.textContent = "Sincronizando...";
+            btnMigrate.setAttribute("disabled", "true");
+            try {
+              await appInstance.storage.migrateLocalDataToSupabase();
+              alert("Migração concluída! Todos os dados locais atuais foram copiados para o Supabase Cloud.");
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert("Falha ao exportar dados: " + err.message);
+              btnMigrate.textContent = originalText;
+              btnMigrate.removeAttribute("disabled");
+            }
           }
-        }
+        });
       });
     }
+
+    // 6. Handle UAC Settings Form Submit
+    const uacForm = document.getElementById("settings-uac-config-form");
+    if (uacForm) {
+      uacForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const newPass = document.getElementById("settings-uac-master-pass").value;
+
+        // Intercept with Windows UAC authorization if not master admin
+        app.requestAdminAuthorization("Salvar Configurações UAC", async () => {
+          try {
+            app.settings.admin_master_password = newPass;
+            await app.save();
+            alert("Senha mestra do UAC alterada com sucesso!");
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert("Erro ao salvar senha mestra: " + err.message);
+          }
+        });
+      });
+    }
+
+    // 7. Handle Add Access Control Mapping
+    const addRoleBtn = document.getElementById("add-role-mapping-btn");
+    if (addRoleBtn) {
+      addRoleBtn.addEventListener("click", () => {
+        const emailInput = document.getElementById("new-role-email");
+        const selectRole = document.getElementById("new-role-select");
+        const email = emailInput.value.trim().toLowerCase();
+
+        if (!email) {
+          alert("Por favor, digite um e-mail válido.");
+          return;
+        }
+
+        // Intercept with Windows UAC authorization if not master admin
+        app.requestAdminAuthorization("Adicionar Usuário ao Controle de Acesso", async () => {
+          try {
+            if (!app.settings.user_roles) app.settings.user_roles = {};
+            app.settings.user_roles[email] = selectRole.value;
+            await app.save();
+            alert(`Perfil de acesso para ${email} adicionado com sucesso!`);
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert("Erro ao adicionar perfil: " + err.message);
+          }
+        });
+      });
+    }
+
+    // 8. Handle Remove Access Control Mapping
+    const removeRoleBtns = document.querySelectorAll(".remove-role-btn");
+    removeRoleBtns.forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const email = e.currentTarget.getAttribute("data-email");
+
+        // Intercept with Windows UAC authorization if not master admin
+        app.requestAdminAuthorization("Remover Usuário do Controle de Acesso", async () => {
+          try {
+            if (app.settings.user_roles && app.settings.user_roles[email]) {
+              delete app.settings.user_roles[email];
+              await app.save();
+              alert(`Perfil de acesso para ${email} removido.`);
+              appInstance.renderActivePage();
+            }
+          } catch (err) {
+            alert("Erro ao excluir perfil: " + err.message);
+          }
+        });
+      });
+    });
   }
 }

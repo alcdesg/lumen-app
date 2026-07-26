@@ -49,15 +49,17 @@ class TasksPage {
               ${sign}${formattedAmount}
             </td>
             <td class="row-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
-              <button class="btn btn-primary resolve-confirm-btn" style="padding: 4px 8px; font-size: 11px;" title="Confirmar realização">
-                Confirmar
-              </button>
-              <button class="btn btn-secondary resolve-postpone-btn" style="padding: 4px 8px; font-size: 11px;" title="Adiar vencimento em 7 dias">
-                Adiar 7d
-              </button>
-              <button class="btn btn-danger resolve-delete-btn" style="padding: 4px 8px; font-size: 11px; background-color: transparent; border-color: transparent; color: var(--color-expense);" title="Descartar previsão">
-                Excluir
-              </button>
+              ${app.userRole !== 'viewer' ? `
+                <button class="btn btn-primary resolve-confirm-btn" style="padding: 4px 8px; font-size: 11px;" title="Confirmar realização">
+                  Confirmar
+                </button>
+                <button class="btn btn-secondary resolve-postpone-btn" style="padding: 4px 8px; font-size: 11px;" title="Adiar vencimento em 7 dias">
+                  Adiar 7d
+                </button>
+                <button class="btn btn-danger resolve-delete-btn" style="padding: 4px 8px; font-size: 11px; background-color: transparent; border-color: transparent; color: var(--color-expense);" title="Descartar previsão">
+                  Excluir
+                </button>
+              ` : '<span style="color:var(--text-muted); font-size:11px;">Leitura</span>'}
             </td>
           </tr>
         `;
@@ -135,15 +137,17 @@ class TasksPage {
               ${sign}${formattedAmount}
             </td>
             <td class="row-actions" style="display: flex; gap: 8px; justify-content: flex-end;">
-              <button class="btn btn-primary resolve-confirm-btn" style="padding: 4px 8px; font-size: 11px;" title="Confirmar realização antecipada">
-                Confirmar
-              </button>
-              <button class="btn btn-secondary future-edit-btn" style="padding: 4px 8px; font-size: 11px;" title="Editar esta previsão">
-                Editar
-              </button>
-              <button class="btn btn-danger resolve-delete-btn" style="padding: 4px 8px; font-size: 11px; background-color: transparent; border-color: transparent; color: var(--color-expense);" title="Descartar previsão">
-                Excluir
-              </button>
+              ${app.userRole !== 'viewer' ? `
+                <button class="btn btn-primary resolve-confirm-btn" style="padding: 4px 8px; font-size: 11px;" title="Confirmar realização antecipada">
+                  Confirmar
+                </button>
+                <button class="btn btn-secondary future-edit-btn" style="padding: 4px 8px; font-size: 11px;" title="Editar esta previsão">
+                  Editar
+                </button>
+                <button class="btn btn-danger resolve-delete-btn" style="padding: 4px 8px; font-size: 11px; background-color: transparent; border-color: transparent; color: var(--color-expense);" title="Descartar previsão">
+                  Excluir
+                </button>
+              ` : '<span style="color:var(--text-muted); font-size:11px;">Leitura</span>'}
             </td>
           </tr>
         `;

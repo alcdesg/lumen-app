@@ -206,73 +206,81 @@ class AccountsPage {
     // Delete Account handler
     const deleteAccBtns = document.querySelectorAll(".delete-acc-btn");
     deleteAccBtns.forEach(btn => {
-      btn.addEventListener("click", async (e) => {
+      btn.addEventListener("click", (e) => {
         const id = btn.getAttribute("data-acc-id");
         const acc = app.accounts.find(a => a.id === id);
         
-        if (confirm(`Deseja mesmo excluir a conta "${acc.name}"?`)) {
-          try {
-            app.deleteAccount(id);
-            await app.save();
-            appInstance.renderActivePage();
-          } catch (err) {
-            alert(err.message); // Will fire if account has active transactions
+        app.requestAdminAuthorization("Excluir Conta Bancária", async () => {
+          if (confirm(`Deseja mesmo excluir a conta "${acc.name}"?`)) {
+            try {
+              app.deleteAccount(id);
+              await app.save();
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert(err.message); // Will fire if account has active transactions
+            }
           }
-        }
+        });
       });
     });
 
     // Delete Category handler
     const deleteCatBtns = document.querySelectorAll(".delete-cat-btn");
     deleteCatBtns.forEach(btn => {
-      btn.addEventListener("click", async (e) => {
+      btn.addEventListener("click", (e) => {
         const id = btn.getAttribute("data-cat-id");
         const cat = app.categories.find(c => c.id === id);
         
-        if (confirm(`Deseja mesmo excluir a categoria "${cat.name}"?`)) {
-          try {
-            app.deleteCategory(id);
-            await app.save();
-            appInstance.renderActivePage();
-          } catch (err) {
-            alert(err.message); // Will fire if category has active transactions
+        app.requestAdminAuthorization("Excluir Categoria Financeira", async () => {
+          if (confirm(`Deseja mesmo excluir a categoria "${cat.name}"?`)) {
+            try {
+              app.deleteCategory(id);
+              await app.save();
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert(err.message); // Will fire if category has active transactions
+            }
           }
-        }
+        });
       });
     });
 
     // Rename Couple handler
     if (coupleForm) {
-      coupleForm.addEventListener("submit", async (e) => {
+      coupleForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const names = document.getElementById("settings-couple-names").value;
-        try {
-          await app.updateCoupleNames(names);
-          appInstance.updateWelcomeText();
-          alert("Nome do casal atualizado com sucesso!");
-          appInstance.renderActivePage();
-        } catch (err) {
-          alert(err.message);
-        }
+        app.requestAdminAuthorization("Renomear Casal", async () => {
+          try {
+            await app.updateCoupleNames(names);
+            appInstance.updateWelcomeText();
+            alert("Nome do casal atualizado com sucesso!");
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert(err.message);
+          }
+        });
       });
     }
 
     // Reset Database handler
     if (resetBtn) {
-      resetBtn.addEventListener("click", async () => {
-        if (confirm("ATENÇÃO: Você tem certeza de que deseja redefinir o banco de dados?\n\nEsta ação apagará todas as contas, transações e categorias atuais do navegador e da sua pasta do OneDrive (se conectada) para iniciar do zero. Essa operação não pode ser desfeita!")) {
-          if (confirm("Confirmação final: Deseja realmente zerar o banco de dados?")) {
-            try {
-              await app.storage.clearDatabase();
-              await app.init(); // Reload app state from clean DB
-              appInstance.updateWelcomeText();
-              alert("Banco de dados redefinido com sucesso! O aplicativo agora está limpo para seus lançamentos reais.");
-              window.location.hash = "#help"; // Redirect to Help tutorial!
-            } catch (err) {
-              alert(err.message);
+      resetBtn.addEventListener("click", () => {
+        app.requestAdminAuthorization("Redefinir Banco de Dados (Reset Geral)", async () => {
+          if (confirm("ATENÇÃO: Você tem certeza de que deseja redefinir o banco de dados?\n\nEsta ação apagará todas as contas, transações e categorias atuais do navegador e da sua pasta do OneDrive (se conectada) para iniciar do zero. Essa operação não pode ser desfeita!")) {
+            if (confirm("Confirmação final: Deseja realmente zerar o banco de dados?")) {
+              try {
+                await app.storage.clearDatabase();
+                await app.init(); // Reload app state from clean DB
+                appInstance.updateWelcomeText();
+                alert("Banco de dados redefinido com sucesso! O aplicativo agora está limpo para seus lançamentos reais.");
+                window.location.hash = "#help"; // Redirect to Help tutorial!
+              } catch (err) {
+                alert(err.message);
+              }
             }
           }
-        }
+        });
       });
     }
   }

@@ -10,7 +10,11 @@ class LumenApp {
     this.categories = [];
     this.transactions = [];
     this.batches = [];
-    this.settings = { couple_names: 'Paula & Alcides' };
+    this.settings = { couple_names: 'Paula & Alcides', admin_master_password: 'admin123', user_roles: {} };
+    
+    // User session & RBAC
+    this.currentUserEmail = null;
+    this.userRole = 'viewer';
   }
 
   /**
@@ -25,7 +29,116 @@ class LumenApp {
     this.categories = data.categories.map(c => new Category(c));
     this.transactions = data.transactions.map(t => new Transaction(t));
     this.batches = data.batches || [];
-    this.settings = data.settings || { couple_names: 'Paula & Alcides' };
+    this.settings = data.settings || { couple_names: 'Paula & Alcides', admin_master_password: 'admin123', user_roles: {} };
+
+    // Resolve user session role if logged in
+    const email = localStorage.getItem("lumen_supabase_email") || this.storage.currentUserEmail;
+    if (email) {
+      this.currentUserEmail = email;
+      this.userRole = this.getUserRole(email);
+    } else {
+      this.currentUserEmail = null;
+      this.userRole = 'viewer';
+    }
+  }
+
+  /**
+   * Determines user role based on email and settings mapping.
+   */
+  getUserRole(email) {
+    if (!email) return 'viewer';
+    const emailLower = email.toLowerCase().trim();
+    
+    // 1. Master admin check
+    if (emailLower === 'neto_gurgel@hotmail.com') {
+      return 'admin';
+    }
+
+    // 2. Settings mapping check
+    const rolesMap = this.settings.user_roles || {};
+    if (rolesMap[emailLower]) {
+      return rolesMap[emailLower];
+    }
+
+    // 3. Defaults check (Paula is Editor by default)
+    if (emailLower.includes('paula') || emailLower === 'paula@example.com') {
+      return 'editor';
+    }
+
+    // 4. Default fallback
+    return 'viewer';
+  }
+
+  /**
+   * Checks if user has write permissions
+   */
+  canEdit() {
+    return this.userRole === 'admin' || this.userRole === 'editor';
+  }
+
+  /**
+   * Checks if user has admin privileges
+   */
+  isAdmin() {
+    return this.userRole === 'admin';
+  }
+
+  /**
+   * Intercepts critical actions with a UAC password prompt if not admin.
+   */
+  requestAdminAuthorization(actionName, onSuccess) {
+    if (this.isAdmin()) {
+      onSuccess();
+      return;
+    }
+
+    const uacModal = document.getElementById("uac-modal");
+    const uacActionName = document.getElementById("uac-action-name");
+    const uacForm = document.getElementById("uac-form");
+    const uacPasswordInput = document.getElementById("uac-password");
+    const uacCancelBtn = document.getElementById("uac-cancel-btn");
+
+    if (!uacModal) {
+      // Fallback popup if DOM elements aren't present
+      const pass = prompt(`Esta ação requer privilégios de Administrador (${actionName}). Digite a senha mestra de administração:`);
+      const expected = this.settings.admin_master_password || "admin123";
+      if (pass === expected) {
+        onSuccess();
+      } else if (pass !== null) {
+        alert("Acesso negado.");
+      }
+      return;
+    }
+
+    uacActionName.textContent = actionName;
+    uacPasswordInput.value = "";
+    uacModal.classList.add("active");
+    uacPasswordInput.focus();
+
+    const cleanup = () => {
+      uacModal.classList.remove("active");
+      uacForm.onsubmit = null;
+      uacCancelBtn.onclick = null;
+    };
+
+    uacForm.onsubmit = (e) => {
+      e.preventDefault();
+      const typedPassword = uacPasswordInput.value;
+      const expected = this.settings.admin_master_password || "admin123";
+
+      if (typedPassword === expected) {
+        cleanup();
+        onSuccess();
+      } else {
+        alert("Senha incorreta. Acesso negado pelo UAC.");
+        uacPasswordInput.value = "";
+        uacPasswordInput.focus();
+      }
+    };
+
+    uacCancelBtn.onclick = () => {
+      cleanup();
+    };
   }
 
   /**

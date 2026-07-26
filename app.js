@@ -70,71 +70,48 @@ class ApplicationController {
     const warningBar = document.getElementById('demo-warning-bar');
     if (!setupScreen) return;
 
-    const hasSaved = await this.storage.hasSavedFolder();
-    const activeUser = localStorage.getItem("lumen_active_user");
-
-    if (activeUser) {
-      this.selectUserInSetup(activeUser);
-    }
-
-    if (this.storage.isSupabaseConnected() || this.storage.isOneDriveConnected()) {
+    if (this.storage.isSupabaseConnected()) {
       setupScreen.classList.remove('active');
       if (warningBar) warningBar.style.display = 'none';
+      
+      // Auto-resolve dynamic user profile name based on email
+      const email = localStorage.getItem("lumen_supabase_email") || this.storage.currentUserEmail;
+      if (email) {
+        let activeUser = "Casal";
+        if (email.toLowerCase().trim() === 'neto_gurgel@hotmail.com') activeUser = "Alcides";
+        else if (email.toLowerCase().includes('paula')) activeUser = "Paula";
+        localStorage.setItem("lumen_active_user", activeUser);
+      }
     } else {
       setupScreen.classList.add('active');
-      if (hasSaved) {
-        const connectBtn = document.getElementById('setup-connect-btn');
-        if (connectBtn) {
-          connectBtn.textContent = "Re-autorizar Pasta OneDrive";
-          document.getElementById('setup-status-msg').innerHTML = "Pasta anterior detectada. Clique acima para re-autorizar o acesso em um clique.";
-          if (activeUser) {
-            connectBtn.removeAttribute('disabled');
-          }
-        }
-      }
+      if (warningBar) warningBar.style.display = 'none';
+
+      // Prefill URL and Key inputs if saved
+      const savedUrl = localStorage.getItem("lumen_supabase_url");
+      const savedKey = localStorage.getItem("lumen_supabase_key");
+      const savedEmail = localStorage.getItem("lumen_supabase_email");
+
+      const urlInput = document.getElementById('setup-sb-url');
+      const keyInput = document.getElementById('setup-sb-key');
+      const emailInput = document.getElementById('setup-sb-email');
+
+      if (urlInput && savedUrl) urlInput.value = savedUrl;
+      if (keyInput && savedKey) keyInput.value = savedKey;
+      if (emailInput && savedEmail) emailInput.value = savedEmail;
     }
   }
 
   selectUserInSetup(username) {
+    // Stubbed out as user profile is now resolved dynamically via authenticated email
     localStorage.setItem("lumen_active_user", username);
-    
-    const btnPaula = document.getElementById('btn-user-paula');
-    const btnAlcides = document.getElementById('btn-user-alcides');
-    const connectBtn = document.getElementById('setup-connect-btn');
-    const sbShowBtn = document.getElementById('setup-supabase-show-btn');
-    
-    if (btnPaula && btnAlcides) {
-      if (username === 'Paula') {
-        btnPaula.classList.add('selected');
-        btnAlcides.classList.remove('selected');
-      } else {
-        btnPaula.classList.remove('selected');
-        btnAlcides.classList.add('selected');
-      }
-    }
-    
-    if (connectBtn) {
-      connectBtn.removeAttribute('disabled');
-      const statusMsg = document.getElementById('setup-status-msg');
-      if (statusMsg && !statusMsg.innerHTML.includes("Pasta anterior")) {
-        statusMsg.innerHTML = `Pronto! Clique acima para conectar seu OneDrive como <strong>${username}</strong>.`;
-      }
-    }
-
-    if (sbShowBtn) {
-      sbShowBtn.removeAttribute('disabled');
-    }
   }
 
   updateWelcomeText() {
     const welcomeEl = document.getElementById('header-user-welcome');
     if (welcomeEl) {
-      const activeUser = localStorage.getItem("lumen_active_user");
-      if (activeUser) {
-        welcomeEl.textContent = `Olá, ${activeUser}!`;
-      } else {
-        welcomeEl.textContent = this.app.settings ? this.app.settings.couple_names : "Paula & Alcides";
-      }
+      const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+      const roleText = this.app.userRole === 'admin' ? 'Administrador' : (this.app.userRole === 'editor' ? 'Editor' : 'Leitor');
+      welcomeEl.textContent = `Olá, ${activeUser}! (${roleText})`;
     }
   }
 
@@ -212,6 +189,16 @@ class ApplicationController {
     }
 
     contentView.innerHTML = html;
+
+    // Toggle global add transaction button visibility based on permissions
+    const addBtn = document.getElementById('global-add-tx-btn');
+    if (addBtn) {
+      if (!this.app.canEdit()) {
+        addBtn.style.display = 'none';
+      } else {
+        addBtn.style.display = 'block';
+      }
+    }
     
     // Bind specific events for the active page
     if (pageClass && typeof pageClass.initEvents === 'function') {
@@ -275,67 +262,52 @@ class ApplicationController {
    * Binds global application shell buttons and modal hooks.
    */
   setupGlobalEvents() {
-    // 0. Setup screen user select & connect triggers
-    const btnPaula = document.getElementById('btn-user-paula');
-    const btnAlcides = document.getElementById('btn-user-alcides');
-    const setupConnectBtn = document.getElementById('setup-connect-btn');
+    // 0. Setup screen triggers
     const setupSkipBtn = document.getElementById('setup-skip-btn');
+    const apiToggleBtn = document.getElementById('setup-api-toggle-btn');
+    const hiddenApiConfig = document.getElementById('saas-hidden-api-config');
 
-    if (btnPaula) {
-      btnPaula.addEventListener('click', () => this.selectUserInSetup('Paula'));
-    }
-    if (btnAlcides) {
-      btnAlcides.addEventListener('click', () => this.selectUserInSetup('Alcides'));
-    }
-    if (setupConnectBtn) {
-      setupConnectBtn.addEventListener('click', async () => {
-        try {
-          const connected = await this.storage.connectOneDriveFolder();
-          if (connected) {
-            await this.app.init();
-            this.updateWelcomeText();
-            this.updateSyncUI();
-            const setupScreen = document.getElementById('setup-screen');
-            if (setupScreen) setupScreen.classList.remove('active');
-            const warningBar = document.getElementById('demo-warning-bar');
-            if (warningBar) warningBar.style.display = 'none';
-            this.renderActivePage();
-          }
-        } catch (e) {
-          alert('Não foi possível conectar a pasta: ' + e.message);
-        }
+    if (apiToggleBtn && hiddenApiConfig) {
+      apiToggleBtn.addEventListener('click', () => {
+        const isHidden = hiddenApiConfig.style.display === 'none';
+        hiddenApiConfig.style.display = isHidden ? 'flex' : 'none';
       });
     }
+
     if (setupSkipBtn) {
       setupSkipBtn.addEventListener('click', () => {
         const setupScreen = document.getElementById('setup-screen');
         if (setupScreen) setupScreen.classList.remove('active');
         const warningBar = document.getElementById('demo-warning-bar');
         if (warningBar) warningBar.style.display = 'block';
+        
+        // Default to Demo mode with guest role
+        localStorage.setItem("lumen_active_user", "Casal");
+        this.app.userRole = 'viewer';
+        
         this.updateWelcomeText();
         this.renderActivePage();
       });
     }
 
-    // 0.5 Supabase setup screen events
-    const setupSbShowBtn = document.getElementById('setup-supabase-show-btn');
+    // 0.5 Supabase setup screen events (Unified Login)
     const setupSbForm = document.getElementById('setup-supabase-form');
-    if (setupSbShowBtn && setupSbForm) {
-      setupSbShowBtn.addEventListener('click', () => {
-        setupSbForm.style.display = 'flex';
-        setupSbShowBtn.style.display = 'none';
-      });
-
+    if (setupSbForm) {
       setupSbForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const url = document.getElementById('setup-sb-url').value.trim();
-        const key = document.getElementById('setup-sb-key').value.trim();
+        
+        let url = document.getElementById('setup-sb-url').value.trim();
+        let key = document.getElementById('setup-sb-key').value.trim();
         const email = document.getElementById('setup-sb-email').value.trim();
         const pass = document.getElementById('setup-sb-pass').value;
 
+        // Fallback to saved parameters or default project keys if inputs are empty
+        if (!url) url = localStorage.getItem("lumen_supabase_url") || "https://jmxhhxitjqwjymwwzcvo.supabase.co";
+        if (!key) key = localStorage.getItem("lumen_supabase_key") || "";
+
         const submitBtn = setupSbForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Conectando Nuvem...';
+        submitBtn.textContent = 'Conectando...';
         submitBtn.setAttribute('disabled', 'true');
 
         try {
@@ -362,6 +334,12 @@ class ApplicationController {
           if (setupScreen) setupScreen.classList.remove('active');
           const warningBar = document.getElementById('demo-warning-bar');
           if (warningBar) warningBar.style.display = 'none';
+
+          // Resolve dynamic user profile name based on email
+          let activeUser = "Casal";
+          if (email.toLowerCase().trim() === 'neto_gurgel@hotmail.com') activeUser = "Alcides";
+          else if (email.toLowerCase().includes('paula')) activeUser = "Paula";
+          localStorage.setItem("lumen_active_user", activeUser);
 
           // Update header & pills
           this.updateWelcomeText();
