@@ -607,4 +607,5 @@ class ApplicationController {
 
 // Start Controller
 const controller = new ApplicationController();
+window.controller = controller;
 controller.start();

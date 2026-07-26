@@ -121,7 +121,37 @@ class SettingsPage {
                 Conectar e Carregar Dados do Banco
               </button>
             </form>
-          `}
+        </div>
+
+        <!-- JSON Backup Import Card -->
+        <div class="section-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--text-secondary);">
+            Importar Banco de Dados Local (JSON)
+          </h4>
+          <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Se você possui arquivos de dados locais (como <code>transactions.json</code>, <code>accounts.json</code>, etc.) na pasta do seu computador, selecione-os abaixo para restaurar seu histórico no aplicativo e sincronizar na nuvem.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+              <span><strong>Contas (accounts.json):</strong></span>
+              <input type="file" id="json-import-accounts" accept=".json" style="max-width: 220px; font-size: 11px;">
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+              <span><strong>Categorias (categories.json):</strong></span>
+              <input type="file" id="json-import-categories" accept=".json" style="max-width: 220px; font-size: 11px;">
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+              <span><strong>Transações (transactions.json):</strong></span>
+              <input type="file" id="json-import-transactions" accept=".json" style="max-width: 220px; font-size: 11px;">
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <span><strong>Lotes (batches.json):</strong></span>
+              <input type="file" id="json-import-batches" accept=".json" style="max-width: 220px; font-size: 11px;">
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-json-import-submit" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600; margin-top: 4px;">
+            Carregar e Salvar no Sistema
+          </button>
         </div>
 
         <!-- Access Control / UAC Settings Card -->
@@ -341,6 +371,76 @@ class SettingsPage {
               btnMigrate.textContent = originalText;
               btnMigrate.removeAttribute("disabled");
             }
+          }
+        });
+      });
+    }
+
+    // 5.5 Handle JSON Backup Import
+    const btnJsonImport = document.getElementById("btn-json-import-submit");
+    if (btnJsonImport) {
+      btnJsonImport.addEventListener("click", () => {
+        app.requestAdminAuthorization("Importar Banco de Dados JSON", async () => {
+          const fileAcc = document.getElementById("json-import-accounts").files[0];
+          const fileCat = document.getElementById("json-import-categories").files[0];
+          const fileTx = document.getElementById("json-import-transactions").files[0];
+          const fileBat = document.getElementById("json-import-batches").files[0];
+
+          if (!fileAcc && !fileCat && !fileTx && !fileBat) {
+            alert("Selecione pelo menos um arquivo de backup (.json) para importar.");
+            return;
+          }
+
+          const originalText = btnJsonImport.textContent;
+          btnJsonImport.textContent = "Processando...";
+          btnJsonImport.setAttribute("disabled", "true");
+
+          try {
+            const readJsonFile = (file) => {
+              return new Promise((resolve, reject) => {
+                if (!file) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  try {
+                    resolve(JSON.parse(e.target.result));
+                  } catch (err) {
+                    reject(new Error(`Erro ao ler o arquivo ${file.name}: ${err.message}`));
+                  }
+                };
+                reader.onerror = () => reject(new Error(`Falha ao ler o arquivo ${file.name}`));
+                reader.readAsText(file);
+              });
+            };
+
+            const [accounts, categories, transactions, batches] = await Promise.all([
+              readJsonFile(fileAcc),
+              readJsonFile(fileCat),
+              readJsonFile(fileTx),
+              readJsonFile(fileBat)
+            ]);
+
+            // Merge with existing state if some files were not selected
+            const currentData = appInstance.storage.loadFromLocalStorage();
+            const dataToSave = {
+              accounts: accounts || currentData.accounts,
+              categories: categories || currentData.categories,
+              transactions: transactions || currentData.transactions,
+              batches: batches || currentData.batches,
+              settings: currentData.settings
+            };
+
+            // Save to LocalStorage and Cloud (if connected)
+            await appInstance.storage.saveData(dataToSave);
+            
+            // Reinitialize application memory state
+            await app.init();
+            
+            alert("Backup importado e sincronizado com sucesso!");
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert("Falha na importação: " + err.message);
+            btnJsonImport.textContent = originalText;
+            btnJsonImport.removeAttribute("disabled");
           }
         });
       });

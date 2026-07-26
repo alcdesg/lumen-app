@@ -29,8 +29,10 @@ create table if not exists public.categories (
 -- 3. Batches Table
 create table if not exists public.batches (
     id text primary key,
-    description text,
-    created_at timestamptz not null default now(),
+    filename text not null,
+    imported_at timestamptz not null default now(),
+    status text not null,
+    transaction_ids text[] not null default '{}',
     user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
 );
 
@@ -47,7 +49,8 @@ create table if not exists public.transactions (
     is_active boolean not null default true,
     is_deleted boolean not null default false,
     parent_id text,
-    batch_id text,
+    import_batch_id text,
+    replaced_by_version integer,
     member text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
