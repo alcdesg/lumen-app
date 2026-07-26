@@ -7,3 +7,6 @@ settings.json
 
 # Ignorar pastas de backup locais do sistema
 backups/
+
+# Ignorar arquivo de credenciais locais (injetado via GitHub Actions em produção)
+src/config.js

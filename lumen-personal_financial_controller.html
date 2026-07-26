@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="index.css">
   <!-- Supabase Cloud CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Lumen Environment Credentials Config -->
+  <script src="src/config.js"></script>
   <!-- Glowing Emerald Favicon (Data URI SVG) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='35' fill='%2309090b' stroke='%2310b981' stroke-width='10'/><circle cx='50' cy='50' r='15' fill='%2334d399'/></svg>">
 </head>
@@ -76,21 +78,9 @@
         </p>
         
         <form id="setup-supabase-form" style="display: flex; flex-direction: column; gap: 16px;">
-          <!-- Hidden default credentials inputs, but prefilled if saved -->
-          <div id="saas-hidden-api-config" style="display: none; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; margin-bottom: 8px;">
-            <div style="font-size: 11px; font-weight: bold; color: var(--text-secondary); display: flex; justify-content: space-between;">
-              <span>CONFIGURAÇÃO DE API SUPABASE</span>
-              <span style="color: var(--color-income);">Customizado</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <label for="setup-sb-url" style="font-size: 10px; font-weight: 600; color: var(--text-muted);">SUPABASE URL</label>
-              <input type="url" id="setup-sb-url" placeholder="https://your-project.supabase.co" style="padding: 8px; font-size: 11px; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-              <label for="setup-sb-key" style="font-size: 10px; font-weight: 600; color: var(--text-muted);">SUPABASE ANON KEY</label>
-              <input type="password" id="setup-sb-key" placeholder="eyJhbGciOi..." style="padding: 8px; font-size: 11px; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
-            </div>
-          </div>
+          <!-- Hidden default credentials inputs, safely processed dynamically -->
+          <input type="hidden" id="setup-sb-url" value="">
+          <input type="hidden" id="setup-sb-key" value="">
 
           <div style="display: flex; flex-direction: column; gap: 6px;">
             <label for="setup-sb-email" style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">E-mail</label>
@@ -121,12 +111,9 @@
           </button>
         </form>
 
-        <div style="margin-top: 32px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-top: 32px; display: flex; justify-content: center; align-items: center;">
           <button type="button" id="setup-skip-btn" style="background: none; border: none; color: var(--text-muted); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;">
             Entrar como Convidado (Modo Demo)
-          </button>
-          <button type="button" id="setup-api-toggle-btn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 4px;" title="Configurações de Conexão do Banco">
-            <svg style="width: 16px; height: 16px; opacity:0.6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           </button>
         </div>
       </div>

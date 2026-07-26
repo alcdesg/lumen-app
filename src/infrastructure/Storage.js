@@ -254,9 +254,17 @@ class Storage {
    */
   async init() {
     // 1. Initialize Supabase if connected
-    const savedUrl = localStorage.getItem("lumen_supabase_url");
-    const savedKey = localStorage.getItem("lumen_supabase_key");
+    let savedUrl = localStorage.getItem("lumen_supabase_url");
+    let savedKey = localStorage.getItem("lumen_supabase_key");
     const isConnected = localStorage.getItem("lumen_supabase_connected") === "true";
+
+    // Fallback to window config injection
+    if (!savedUrl && window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_URL) {
+      savedUrl = window.LUMEN_CONFIG.SUPABASE_URL;
+    }
+    if (!savedKey && window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_KEY) {
+      savedKey = window.LUMEN_CONFIG.SUPABASE_KEY;
+    }
 
     if (savedUrl && savedKey && isConnected && window.supabase) {
       try {

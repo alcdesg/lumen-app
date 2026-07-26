@@ -86,9 +86,9 @@ class ApplicationController {
       setupScreen.classList.add('active');
       if (warningBar) warningBar.style.display = 'none';
 
-      // Prefill URL and Key inputs if saved
-      const savedUrl = localStorage.getItem("lumen_supabase_url");
-      const savedKey = localStorage.getItem("lumen_supabase_key");
+      // Prefill URL and Key inputs if saved or configured via window config
+      const savedUrl = (window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_URL) || localStorage.getItem("lumen_supabase_url");
+      const savedKey = (window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_KEY) || localStorage.getItem("lumen_supabase_key");
       const savedEmail = localStorage.getItem("lumen_supabase_email");
 
       const urlInput = document.getElementById('setup-sb-url');
@@ -301,9 +301,9 @@ class ApplicationController {
         const email = document.getElementById('setup-sb-email').value.trim();
         const pass = document.getElementById('setup-sb-pass').value;
 
-        // Fallback to saved parameters or default project keys if inputs are empty
-        if (!url) url = localStorage.getItem("lumen_supabase_url") || "https://jmxhhxitjqwjymwwzcvo.supabase.co";
-        if (!key) key = localStorage.getItem("lumen_supabase_key") || "";
+        // Fallback to window config injection, saved parameters or default project keys
+        if (!url) url = (window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_URL) || localStorage.getItem("lumen_supabase_url") || "https://jmxhhxitjqwjymwwzcvo.supabase.co";
+        if (!key) key = (window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_KEY) || localStorage.getItem("lumen_supabase_key") || "";
 
         const submitBtn = setupSbForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
