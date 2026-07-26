@@ -1,0 +1,35 @@
+<!--
+  COLE O BLOCO ABAIXO no seu arquivo de regras GLOBAL do Antigravity.
+  Local provável (confirme na sua versão — ver README):
+    ~/.gemini/GEMINI.md   ou   ~/.gemini/AGENTS.md
+  Se quiser o gate só num projeto, cole no GEMINI.md/AGENTS.md da raiz do projeto.
+
+  As skills referenciadas ficam em: ~/.gemini/skills/<nome>/SKILL.md
+  (confirme o caminho de skills globais da sua versão — ver README).
+-->
+
+## Processo antes de implementar (gate)
+
+Antes de escrever qualquer código, criar arquivos, scaffoldar um projeto ou
+instalar dependências, PARE e verifique se um dos processos abaixo se aplica.
+Se houver qualquer chance razoável de que se aplique, siga-o antes de agir —
+inclusive antes de fazer perguntas exploratórias ou explorar o código.
+
+- **Vou construir algo novo** (feature, componente, projeto, mudança de
+  comportamento) → siga a skill **brainstorming** primeiro: entenda o contexto
+  do projeto, faça perguntas uma de cada vez até entender propósito, restrições
+  e critério de sucesso, proponha 2-3 abordagens com trade-offs, e só implemente
+  depois de apresentar um design e o usuário aprovar. Não pule essa etapa
+  alegando que a tarefa é "simples".
+- **Tenho um design/spec aprovado e vou detalhar como implementar** → siga a
+  skill **writing-plans**.
+- **Estou depurando um bug ou algo não funciona como esperado** → siga a skill
+  **systematic-debugging**: ache a causa-raiz antes de propor correção; não
+  remende sintomas.
+- **Terminei uma tarefa e vou declará-la pronta** → siga a skill
+  **verification-before-completion** antes de dizer que está concluída.
+
+Anuncie qual processo está seguindo ("Vou usar [skill] para [propósito]") e
+siga-o. Uma instrução direta minha sempre tem precedência sobre estas regras:
+se eu pedir uma resposta direta, uma prova de conceito rápida ou disser
+explicitamente para pular o processo, obedeça — sem impor o fluxo.

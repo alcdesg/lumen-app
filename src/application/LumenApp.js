@@ -412,7 +412,7 @@ class LumenApp {
     });
   }
 
-  findMatchingConfirmedTransaction(row, alreadyMatchedConfirmedIds = []) {
+  findMatchingDuplicateTransaction(row, todayStr, alreadyMatchedDuplicateIds = []) {
     const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
     if (!acc) return null;
 
@@ -423,12 +423,13 @@ class LumenApp {
     const rowDateStr = row.date;
     const rowMonth = rowDateStr.substring(0, 7);
     const rowDate = new Date(rowDateStr + 'T00:00:00');
+    const rowStatus = row.date <= todayStr ? 'confirmed' : 'planned';
 
     return this.getActiveTransactions().find(t => {
-      if (t.status !== 'confirmed') return false;
+      if (t.status !== rowStatus) return false;
       if (t.account_id !== acc.id) return false;
       if (t.category_id !== cat.id) return false;
-      if (alreadyMatchedConfirmedIds.includes(t.id)) return false;
+      if (alreadyMatchedDuplicateIds.includes(t.id)) return false;
 
       // Strict month/year matching
       const tMonth = t.date.substring(0, 7);

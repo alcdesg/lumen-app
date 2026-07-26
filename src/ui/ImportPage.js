@@ -104,9 +104,9 @@ class ImportPage {
           </div>
         `;
 
-        // Track already matched planned and confirmed transactions to avoid duplicate matches in preview
+        // Track already matched planned and duplicate transactions to avoid duplicate matches in preview
         const alreadyMatched = [];
-        const alreadyMatchedConfirmed = [];
+        const alreadyMatchedDuplicate = [];
 
         importState.transactions.forEach(row => {
           const accExists = app.accounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
@@ -137,8 +137,8 @@ class ImportPage {
 
           // Try to find a matching planned transaction in the database
           const matchedPlanned = app.findMatchingPlannedTransaction(row, alreadyMatched);
-          // Try to find a matching confirmed transaction (already imported)
-          const matchedConfirmed = app.findMatchingConfirmedTransaction(row, alreadyMatchedConfirmed);
+          // Try to find a matching duplicate transaction (already imported/created)
+          const matchedDuplicate = app.findMatchingDuplicateTransaction(row, today, alreadyMatchedDuplicate);
 
           let actionCell = '';
           let descHtml = `style="font-weight:600;"`;
@@ -165,10 +165,10 @@ class ImportPage {
                 <span style="font-size:9px; color:var(--accent-secondary); font-weight:600;">Substituir</span>
               </div>
             `;
-          } else if (matchedConfirmed) {
-            alreadyMatchedConfirmed.push(matchedConfirmed.id);
+          } else if (matchedDuplicate) {
+            alreadyMatchedDuplicate.push(matchedDuplicate.id);
             
-            descSubtitle = `<div style="font-size:10px; color:var(--color-expense); margin-top:2px; font-weight:700;">⚠️ Já Importado (Duplicado?): ${matchedConfirmed.description} (${formattedAmount})</div>`;
+            descSubtitle = `<div style="font-size:10px; color:var(--color-expense); margin-top:2px; font-weight:700;">⚠️ Já Importado (Duplicado?): ${matchedDuplicate.description} (${formattedAmount})</div>`;
             
             actionCell = `
               <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
