@@ -373,15 +373,34 @@ class Storage {
     return this.isUsingSupabase && this.supabase !== null;
   }
 
-  /**
-   * Resets the entire database state (both LocalStorage and OneDrive)
-   */
   async clearDatabase() {
     localStorage.setItem("lumen_accounts", JSON.stringify([]));
     localStorage.setItem("lumen_categories", JSON.stringify([]));
     localStorage.setItem("lumen_transactions", JSON.stringify([]));
     localStorage.setItem("lumen_batches", JSON.stringify([]));
     localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
+
+    if (this.isUsingSupabase && this.supabase) {
+      try {
+        const { data: { user } } = await this.supabase.auth.getUser();
+        if (user) {
+          console.log("Limpando dados do usuário no Supabase Cloud...");
+          const results = await Promise.all([
+            this.supabase.from("transactions").delete().eq("user_id", user.id),
+            this.supabase.from("batches").delete().eq("user_id", user.id),
+            this.supabase.from("accounts").delete().eq("user_id", user.id),
+            this.supabase.from("categories").delete().eq("user_id", user.id),
+            this.supabase.from("settings").delete().eq("user_id", user.id)
+          ]);
+          for (const res of results) {
+            if (res.error) throw res.error;
+          }
+        }
+      } catch (e) {
+        console.error("Falha ao limpar banco de dados no Supabase:", e);
+        throw new Error("Falha ao redefinir banco na nuvem: " + e.message);
+      }
+    }
 
     if (this.isUsingFileSystem && this.directoryHandle) {
       await this.saveToFileSystem({

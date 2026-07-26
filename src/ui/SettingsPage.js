@@ -207,6 +207,20 @@ class SettingsPage {
           </form>
         </div>
 
+        <!-- Zona de Perigo Card -->
+        <div class="section-card" style="padding: 24px; border: 1px solid var(--color-expense-bg); background-color: hsla(0, 85%, 60%, 0.03); display: flex; flex-direction: column; gap: 16px;">
+          <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--color-expense);">
+            Zona de Perigo
+          </h4>
+          <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Desejam começar a usar o Lumen com seus dados reais? 
+            Clique no botão abaixo para apagar permanentemente todas as contas, categorias, transações e histórico do navegador, do OneDrive e da nuvem do Supabase para iniciar do zero. Esta operação não pode ser desfeita!
+          </p>
+          <button type="button" id="reset-database-btn" class="btn btn-danger" style="font-weight: 600; width: 100%; padding: 10px; font-size: 13px;">
+            Resetar Banco de Dados
+          </button>
+        </div>
+
       </div>
     `;
   }
@@ -516,5 +530,27 @@ class SettingsPage {
         });
       });
     });
+
+    // 9. Handle Reset Database
+    const resetBtn = document.getElementById("reset-database-btn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        app.requestAdminAuthorization("Redefinir Banco de Dados (Reset Geral)", async () => {
+          if (confirm("ATENÇÃO: Você tem certeza de que deseja redefinir o banco de dados?\n\nEsta ação apagará todas as contas, transações e categorias atuais do navegador, do OneDrive e do Supabase para iniciar do zero. Essa operação não pode ser desfeita!")) {
+            if (confirm("Confirmação final: Deseja realmente zerar o banco de dados?")) {
+              try {
+                await app.storage.clearDatabase();
+                await app.init(); // Reload app state from clean DB
+                appInstance.updateWelcomeText();
+                alert("Banco de dados redefinido com sucesso! O aplicativo agora está limpo para seus lançamentos reais.");
+                window.location.hash = "#help"; // Redirect to Help tutorial!
+              } catch (err) {
+                alert(err.message);
+              }
+            }
+          }
+        });
+      });
+    }
   }
 }

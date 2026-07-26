@@ -19,7 +19,8 @@ class Transaction {
     replaced_by_version = null,
     import_batch_id = null,
     is_deleted = false,
-    member = 'Casal'
+    member = 'Casal',
+    created_by_user = null
   }) {
     this.id = id || `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.version = Number(version) || 1;
@@ -36,6 +37,7 @@ class Transaction {
     this.import_batch_id = import_batch_id;
     this.is_deleted = is_deleted === true;
     this.member = member || 'Casal';
+    this.created_by_user = created_by_user || null;
   }
 
   validate() {
@@ -82,7 +84,8 @@ class Transaction {
       replaced_by_version: null,
       import_batch_id: this.import_batch_id,
       is_deleted: updatedFields.is_deleted !== undefined ? updatedFields.is_deleted : false,
-      member: updatedFields.member !== undefined ? updatedFields.member : this.member
+      member: updatedFields.member !== undefined ? updatedFields.member : this.member,
+      created_by_user: updatedFields.created_by_user !== undefined ? updatedFields.created_by_user : this.created_by_user
     });
   }
 }

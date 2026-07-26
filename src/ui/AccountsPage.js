@@ -129,14 +129,14 @@ class AccountsPage {
 
       </div>
 
-      <!-- Settings & System Reset Card -->
+      <!-- Settings Card -->
       <div class="section-card animate-fade-in" style="margin-top: 24px;">
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-          ⚙️ Configurações do Lumen & Redefinição
+          ⚙️ Personalização do Lumen
         </h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <div style="max-width: 450px;">
           
-          <!-- Column 1: Rename Couple -->
+          <!-- Rename Couple -->
           <div>
             <h4 style="font-size:13px; margin-bottom:12px; text-transform:uppercase; color:var(--text-secondary);">Renomear Casal</h4>
             <form id="settings-couple-form" class="modal-form">
@@ -148,16 +148,6 @@ class AccountsPage {
             </form>
           </div>
 
-          <!-- Column 2: Reset Data -->
-          <div>
-            <h4 style="font-size:13px; margin-bottom:12px; text-transform:uppercase; color:var(--color-expense);">Zona de Perigo</h4>
-            <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom: 12px;">
-              Desejam começar a usar o Lumen com seus dados reais? 
-              Clique no botão abaixo para apagar permanentemente todas as contas, categorias e transações demonstrativas atuais e começar do zero.
-            </p>
-            <button type="button" id="reset-database-btn" class="btn btn-danger" style="font-weight: 600;">Resetar Banco de Dados</button>
-          </div>
-
         </div>
       </div>
     `;
@@ -167,7 +157,6 @@ class AccountsPage {
     const accForm = document.getElementById("add-account-form");
     const catForm = document.getElementById("add-category-form");
     const coupleForm = document.getElementById("settings-couple-form");
-    const resetBtn = document.getElementById("reset-database-btn");
 
     // Add Account handler
     if (accForm) {
@@ -258,27 +247,6 @@ class AccountsPage {
             appInstance.renderActivePage();
           } catch (err) {
             alert(err.message);
-          }
-        });
-      });
-    }
-
-    // Reset Database handler
-    if (resetBtn) {
-      resetBtn.addEventListener("click", () => {
-        app.requestAdminAuthorization("Redefinir Banco de Dados (Reset Geral)", async () => {
-          if (confirm("ATENÇÃO: Você tem certeza de que deseja redefinir o banco de dados?\n\nEsta ação apagará todas as contas, transações e categorias atuais do navegador e da sua pasta do OneDrive (se conectada) para iniciar do zero. Essa operação não pode ser desfeita!")) {
-            if (confirm("Confirmação final: Deseja realmente zerar o banco de dados?")) {
-              try {
-                await app.storage.clearDatabase();
-                await app.init(); // Reload app state from clean DB
-                appInstance.updateWelcomeText();
-                alert("Banco de dados redefinido com sucesso! O aplicativo agora está limpo para seus lançamentos reais.");
-                window.location.hash = "#help"; // Redirect to Help tutorial!
-              } catch (err) {
-                alert(err.message);
-              }
-            }
           }
         });
       });

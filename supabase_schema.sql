@@ -14,6 +14,7 @@ create table if not exists public.accounts (
     is_active boolean not null default true,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
+    created_by_user text,
     user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
 );
 
@@ -23,6 +24,7 @@ create table if not exists public.categories (
     name text not null,
     type text not null check (type in ('income', 'expense')),
     is_active boolean not null default true,
+    created_by_user text,
     user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
 );
 
@@ -33,6 +35,7 @@ create table if not exists public.batches (
     imported_at timestamptz not null default now(),
     status text not null,
     transaction_ids text[] not null default '{}',
+    created_by_user text,
     user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
 );
 
@@ -54,6 +57,7 @@ create table if not exists public.transactions (
     member text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
+    created_by_user text,
     user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
     primary key (id, version)
 );

@@ -170,7 +170,7 @@ class LumenApp {
       throw new Error(`Uma conta ativa com o nome "${name}" já existe.`);
     }
 
-    const account = new Account({ name, initial_balance });
+    const account = new Account({ name, initial_balance, created_by_user: this.currentUserEmail });
     account.validate();
     this.accounts.push(account);
     return account;
@@ -198,7 +198,7 @@ class LumenApp {
       throw new Error(`Uma categoria ativa com o nome "${name}" já existe.`);
     }
 
-    const category = new Category({ name, type });
+    const category = new Category({ name, type, created_by_user: this.currentUserEmail });
     category.validate();
     this.categories.push(category);
     return category;
@@ -239,7 +239,8 @@ class LumenApp {
       status,
       version: 1,
       is_active: true,
-      member: member || 'Casal'
+      member: member || 'Casal',
+      created_by_user: this.currentUserEmail
     });
 
     tx.validate();
@@ -267,7 +268,7 @@ class LumenApp {
     }
 
     // Create a new version
-    const newVersionTx = activeTx.createNewVersion(updatedFields);
+    const newVersionTx = activeTx.createNewVersion({ ...updatedFields, created_by_user: this.currentUserEmail });
     newVersionTx.validate();
 
     // Inactivate the old version and link it
@@ -294,7 +295,7 @@ class LumenApp {
     activeTx.updated_at = new Date().toISOString();
 
     // Create deleted version (inactive by default, is_deleted = true)
-    const deletedTx = activeTx.createNewVersion({ is_deleted: true });
+    const deletedTx = activeTx.createNewVersion({ is_deleted: true, created_by_user: this.currentUserEmail });
     deletedTx.is_active = false; // Ensure it doesn't calculate towards balances
     
     this.transactions.push(deletedTx);
@@ -314,7 +315,7 @@ class LumenApp {
     deletedTx.updated_at = new Date().toISOString();
 
     // Create restored version (active, is_deleted = false)
-    const restoredTx = deletedTx.createNewVersion({ is_deleted: false });
+    const restoredTx = deletedTx.createNewVersion({ is_deleted: false, created_by_user: this.currentUserEmail });
     restoredTx.is_active = true;
     restoredTx.updated_at = new Date().toISOString();
 
@@ -475,7 +476,8 @@ class LumenApp {
       amount: amount !== undefined ? amount : activeTx.amount,
       date: date !== undefined ? date : activeTx.date,
       description: description !== undefined ? description : activeTx.description,
-      import_batch_id: import_batch_id !== undefined ? import_batch_id : activeTx.import_batch_id
+      import_batch_id: import_batch_id !== undefined ? import_batch_id : activeTx.import_batch_id,
+      created_by_user: this.currentUserEmail
     };
 
     // Create a new version
@@ -486,6 +488,7 @@ class LumenApp {
     activeTx.is_active = false;
     activeTx.replaced_by_version = newVersionTx.version;
     activeTx.updated_at = new Date().toISOString();
+    activeTx.created_by_user = this.currentUserEmail;
 
     this.transactions.push(newVersionTx);
     return newVersionTx;
@@ -566,7 +569,8 @@ class LumenApp {
           version: 1,
           is_active: true,
           import_batch_id: batchId,
-          member: row.member || 'Casal'
+          member: row.member || 'Casal',
+          created_by_user: this.currentUserEmail
         });
 
         tx.validate();
@@ -581,7 +585,8 @@ class LumenApp {
       filename,
       imported_at: new Date().toISOString(),
       status: 'active',
-      transaction_ids: txIdsInBatch
+      transaction_ids: txIdsInBatch,
+      created_by_user: this.currentUserEmail
     };
 
     this.batches.push(batch);
@@ -614,17 +619,20 @@ class LumenApp {
           activeTx.is_active = false;
           activeTx.replaced_by_version = null;
           activeTx.updated_at = new Date().toISOString();
+          activeTx.created_by_user = this.currentUserEmail;
 
           prevVersion.is_active = true;
           prevVersion.replaced_by_version = null;
           prevVersion.updated_at = new Date().toISOString();
+          prevVersion.created_by_user = this.currentUserEmail;
         } else {
           // Soft-delete the imported transaction (create a deleted version)
           activeTx.is_active = false;
           activeTx.replaced_by_version = activeTx.version + 1;
           activeTx.updated_at = new Date().toISOString();
+          activeTx.created_by_user = this.currentUserEmail;
 
-          const rollbackTx = activeTx.createNewVersion({ is_deleted: true });
+          const rollbackTx = activeTx.createNewVersion({ is_deleted: true, created_by_user: this.currentUserEmail });
           rollbackTx.is_active = false; // Inactive
           this.transactions.push(rollbackTx);
         }
@@ -632,6 +640,7 @@ class LumenApp {
     });
 
     batch.status = 'rolled_back';
+    batch.created_by_user = this.currentUserEmail;
     await this.save();
   }
 }
