@@ -104,8 +104,9 @@ class ImportPage {
           </div>
         `;
 
-        // Track already matched planned transactions to avoid duplicate matches in preview
+        // Track already matched planned and confirmed transactions to avoid duplicate matches in preview
         const alreadyMatched = [];
+        const alreadyMatchedConfirmed = [];
 
         importState.transactions.forEach(row => {
           const accExists = app.accounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
@@ -136,6 +137,9 @@ class ImportPage {
 
           // Try to find a matching planned transaction in the database
           const matchedPlanned = app.findMatchingPlannedTransaction(row, alreadyMatched);
+          // Try to find a matching confirmed transaction (already imported)
+          const matchedConfirmed = app.findMatchingConfirmedTransaction(row, alreadyMatchedConfirmed);
+
           let actionCell = '';
           let descHtml = `style="font-weight:600;"`;
           let descSubtitle = '';
@@ -161,25 +165,49 @@ class ImportPage {
                 <span style="font-size:9px; color:var(--accent-secondary); font-weight:600;">Substituir</span>
               </div>
             `;
+          } else if (matchedConfirmed) {
+            alreadyMatchedConfirmed.push(matchedConfirmed.id);
+            
+            descSubtitle = `<div style="font-size:10px; color:var(--color-expense); margin-top:2px; font-weight:700;">⚠️ Já Importado (Duplicado?): ${matchedConfirmed.description} (${formattedAmount})</div>`;
+            
+            actionCell = `
+              <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                <input type="checkbox" class="import-row-checkbox" data-row-num="${row.row}" style="cursor:pointer; width:16px; height:16px; accent-color:var(--color-expense);">
+                <span style="font-size:9px; color:var(--color-expense); font-weight:600;">Pular</span>
+              </div>
+            `;
           } else if (monthPlannedTxs.length > 0) {
             // No auto match, but candidates exist for manual link
             const availableCandidates = monthPlannedTxs.filter(c => !alreadyMatched.includes(c.id));
             if (availableCandidates.length > 0) {
               actionCell = `
-                <select class="reconcile-select" data-row-num="${row.row}" style="font-size: 11px; padding: 4px; border: 1px solid var(--border-color); background-color: var(--bg-sidebar); color: var(--text-secondary); border-radius: 4px; width: 140px; cursor: pointer;">
-                  <option value="">-- Vincular Previsão --</option>
-                  ${availableCandidates.map(c => {
-                    const fmtCVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Math.abs(c.amount));
-                    const cDate = c.date.split('-').reverse().slice(0, 2).join('/');
-                    return `<option value="${c.id}">${c.description} (${cDate} - ${fmtCVal})</option>`;
-                  }).join('')}
-                </select>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <input type="checkbox" class="import-row-checkbox" data-row-num="${row.row}" checked style="cursor:pointer; width:14px; height:14px; accent-color:var(--color-income);">
+                  <select class="reconcile-select" data-row-num="${row.row}" style="font-size: 11px; padding: 4px; border: 1px solid var(--border-color); background-color: var(--bg-sidebar); color: var(--text-secondary); border-radius: 4px; width: 140px; cursor: pointer;">
+                    <option value="">-- Novo (Vincular?) --</option>
+                    ${availableCandidates.map(c => {
+                      const fmtCVal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Math.abs(c.amount));
+                      const cDate = c.date.split('-').reverse().slice(0, 2).join('/');
+                      return `<option value="${c.id}">${c.description} (${cDate} - ${fmtCVal})</option>`;
+                    }).join('')}
+                  </select>
+                </div>
               `;
             } else {
-              actionCell = `<span style="opacity: 0.3;" title="Nenhuma previsão disponível neste mês">—</span>`;
+              actionCell = `
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                  <input type="checkbox" class="import-row-checkbox" data-row-num="${row.row}" checked style="cursor:pointer; width:16px; height:16px; accent-color:var(--color-income);">
+                  <span style="font-size:9px; color:var(--color-income); font-weight:600;">Novo</span>
+                </div>
+              `;
             }
           } else {
-            actionCell = `<span style="opacity: 0.3;" title="Nenhuma previsão correspondente encontrada">—</span>`;
+            actionCell = `
+              <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                <input type="checkbox" class="import-row-checkbox" data-row-num="${row.row}" checked style="cursor:pointer; width:16px; height:16px; accent-color:var(--color-income);">
+                <span style="font-size:9px; color:var(--color-income); font-weight:600;">Novo</span>
+              </div>
+            `;
           }
 
           previewTableRows += `
@@ -402,27 +430,48 @@ class ImportPage {
         const text = state.importState.fileText;
         const filename = state.importState.filename;
         
-        // Scan the DOM for selected reconciliations (automatic and manual)
+        // Scan the DOM for selected reconciliations and ignored rows
         const reconciliations = {};
-        
-        const checkboxes = document.querySelectorAll(".reconcile-checkbox:checked");
-        checkboxes.forEach(cb => {
+        const ignoredRowNums = [];
+
+        // Check planned matches
+        const reconcileCheckboxes = document.querySelectorAll(".reconcile-checkbox");
+        reconcileCheckboxes.forEach(cb => {
           const rowNum = Number(cb.getAttribute("data-row-num"));
-          const plannedId = cb.getAttribute("data-planned-id");
-          reconciliations[rowNum] = plannedId;
+          if (cb.checked) {
+            const plannedId = cb.getAttribute("data-planned-id");
+            reconciliations[rowNum] = plannedId;
+          } else {
+            ignoredRowNums.push(rowNum);
+          }
         });
 
+        // Check new/duplicate transaction checkboxes
+        const importCheckboxes = document.querySelectorAll(".import-row-checkbox");
+        importCheckboxes.forEach(cb => {
+          const rowNum = Number(cb.getAttribute("data-row-num"));
+          if (!cb.checked) {
+            ignoredRowNums.push(rowNum);
+          }
+        });
+
+        // Check manual dropdown selection
         const dropdowns = document.querySelectorAll(".reconcile-select");
         dropdowns.forEach(sel => {
           const rowNum = Number(sel.getAttribute("data-row-num"));
           const plannedId = sel.value;
           if (plannedId) {
             reconciliations[rowNum] = plannedId;
+            // If linked manually, make sure it is not in the ignored list
+            const idx = ignoredRowNums.indexOf(rowNum);
+            if (idx > -1) {
+              ignoredRowNums.splice(idx, 1);
+            }
           }
         });
 
         try {
-          const res = await app.importTransactions(text, filename, todayStr, reconciliations);
+          const res = await app.importTransactions(text, filename, todayStr, reconciliations, ignoredRowNums);
           if (res.success) {
             alert(`Lote "${filename}" importado com sucesso! ${res.count} transações cadastradas.`);
             state.importState = { status: 'idle', errors: [], transactions: [], filename: '', fileText: '' };

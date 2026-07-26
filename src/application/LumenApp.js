@@ -412,6 +412,51 @@ class LumenApp {
     });
   }
 
+  findMatchingConfirmedTransaction(row, alreadyMatchedConfirmedIds = []) {
+    const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    if (!acc) return null;
+
+    const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
+    if (!cat) return null;
+
+    const rowAmount = Number(row.amount);
+    const rowDateStr = row.date;
+    const rowMonth = rowDateStr.substring(0, 7);
+    const rowDate = new Date(rowDateStr + 'T00:00:00');
+
+    return this.getActiveTransactions().find(t => {
+      if (t.status !== 'confirmed') return false;
+      if (t.account_id !== acc.id) return false;
+      if (t.category_id !== cat.id) return false;
+      if (alreadyMatchedConfirmedIds.includes(t.id)) return false;
+
+      // Strict month/year matching
+      const tMonth = t.date.substring(0, 7);
+      if (rowMonth !== tMonth) return false;
+
+      // Check date tolerance: +/- 3 days
+      const tDate = new Date(t.date + 'T00:00:00');
+      const diffTime = Math.abs(rowDate - tDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 3) return false;
+
+      // Check amount: same exact value (sign included)
+      const tAmount = Number(t.amount || 0);
+      if (tAmount !== rowAmount) return false;
+
+      // Check description similarity (exact match or one contains the other)
+      const cleanDesc = (str) => (str || "").toLowerCase().trim().replace(/\s+/g, " ");
+      const rowDesc = cleanDesc(row.description);
+      const tDesc = cleanDesc(t.description);
+      
+      if (rowDesc === tDesc || rowDesc.includes(tDesc) || tDesc.includes(rowDesc)) {
+        return true;
+      }
+
+      return false;
+    });
+  }
+
   /**
    * Reconciles a planned transaction by updating it to confirmed and setting final values.
    */
@@ -450,10 +495,16 @@ class LumenApp {
   /**
    * Imports a CSV batch, automatically mapping, reconciling, and creating accounts/categories.
    */
-  async importTransactions(csvText, filename, todayStr, reconciliations = {}) {
+  async importTransactions(csvText, filename, todayStr, reconciliations = {}, ignoredRowNums = []) {
     const parsed = CsvParser.parse(csvText);
     if (parsed.errors.length > 0) {
       return { success: false, errors: parsed.errors };
+    }
+
+    // Guardrail: Evitar importação duplicada do mesmo arquivo ativo
+    const duplicateBatch = this.batches.find(b => b.filename.toLowerCase() === filename.toLowerCase() && b.status === 'active');
+    if (duplicateBatch) {
+      return { success: false, errors: [`O arquivo "${filename}" já foi importado anteriormente e está ativo. Para importá-lo novamente, reverta o lote anterior na aba de auditoria.`] };
     }
 
     const importedTxs = parsed.transactions;
@@ -481,6 +532,11 @@ class LumenApp {
 
     // Add each imported transaction
     importedTxs.forEach(row => {
+      // Skip if explicitly ignored by user (e.g. duplicate check failed and user chose to skip)
+      if (ignoredRowNums.includes(row.row)) {
+        return;
+      }
+
       const status = row.date <= todayStr ? 'confirmed' : 'planned';
       const reconciledTxId = reconciliations[row.row];
 
