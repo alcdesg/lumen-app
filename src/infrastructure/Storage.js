@@ -266,6 +266,11 @@ class Storage {
       savedKey = window.LUMEN_CONFIG.SUPABASE_KEY;
     }
 
+    // Se encontrarmos URL e KEY via configuração, consideramos a conexão como ativa
+    if (!isConnected && savedUrl && savedKey) {
+      isConnected = true;
+    }
+
     if (savedUrl && savedKey && isConnected && window.supabase) {
       try {
         let cleanUrl = savedUrl.trim().replace(/\/$/, "");
