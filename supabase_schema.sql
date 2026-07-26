@@ -38,7 +38,7 @@ create table if not exists public.batches (
 
 -- 4. Transactions Table
 create table if not exists public.transactions (
-    id text primary key,
+    id text not null,
     version integer not null default 1,
     account_id text not null,
     category_id text not null,
@@ -54,7 +54,8 @@ create table if not exists public.transactions (
     member text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
-    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade
+    user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+    primary key (id, version)
 );
 
 -- 5. Settings Table
