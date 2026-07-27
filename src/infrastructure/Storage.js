@@ -277,7 +277,12 @@ class Storage {
         if (cleanUrl.endsWith("/rest/v1")) {
           cleanUrl = cleanUrl.slice(0, -8).replace(/\/$/, "");
         }
-        const client = window.supabase.createClient(cleanUrl, savedKey);
+        const remember = localStorage.getItem("lumen_supabase_remember") === "true";
+        const client = window.supabase.createClient(cleanUrl, savedKey, {
+          auth: {
+            persistSession: remember
+          }
+        });
         const { data: { session } } = await client.auth.getSession();
         if (session) {
           this.supabase = client;
@@ -325,7 +330,7 @@ class Storage {
   /**
    * Log into Supabase database, persisting connection parameters.
    */
-  async loginSupabase(url, anonKey, email, password) {
+  async loginSupabase(url, anonKey, email, password, remember = false) {
     if (!window.supabase) {
       throw new Error("A biblioteca do Supabase não foi carregada no navegador.");
     }
@@ -335,7 +340,11 @@ class Storage {
       cleanUrl = cleanUrl.slice(0, -8).replace(/\/$/, "");
     }
 
-    const client = window.supabase.createClient(cleanUrl, anonKey);
+    const client = window.supabase.createClient(cleanUrl, anonKey, {
+      auth: {
+        persistSession: remember
+      }
+    });
     const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) {
       throw new Error(error.message);
@@ -346,6 +355,7 @@ class Storage {
     localStorage.setItem("lumen_supabase_url", cleanUrl);
     localStorage.setItem("lumen_supabase_key", anonKey);
     localStorage.setItem("lumen_supabase_connected", "true");
+    localStorage.setItem("lumen_supabase_remember", remember ? "true" : "false");
 
     // Also disable OneDrive if active to prevent dual synchronization
     this.directoryHandle = null;
@@ -367,6 +377,29 @@ class Storage {
     localStorage.removeItem("lumen_supabase_connected");
     localStorage.removeItem("lumen_supabase_url");
     localStorage.removeItem("lumen_supabase_key");
+    localStorage.removeItem("lumen_supabase_email");
+    localStorage.removeItem("lumen_supabase_remember");
+    localStorage.removeItem("lumen_active_user");
+  }
+
+  /**
+   * Signs up a new user credential directly in the Supabase project auth.
+   */
+  async signUpUser(email, password) {
+    if (!this.supabase) {
+      throw new Error("Supabase não está conectado.");
+    }
+    const { data, error } = await this.supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: null
+      }
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data;
   }
 
   isSupabaseConnected() {

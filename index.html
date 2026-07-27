@@ -100,7 +100,7 @@
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
             <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="setup-sb-remember" checked style="accent-color: var(--accent-primary);">
+              <input type="checkbox" id="setup-sb-remember" style="accent-color: var(--accent-primary);">
               Mantenha-me conectado
             </label>
             <a href="#" id="forgot-password-link" style="font-size: 12px; color: var(--accent-primary); text-decoration: none;">Esqueceu sua senha?</a>
@@ -198,6 +198,11 @@
         <button type="button" id="theme-toggle-btn" class="menu-item" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-color); padding: 8px 12px; margin-top: 4px; justify-content: center; font-size: 12px; gap: 8px; width: 100%;">
           <svg class="menu-icon" id="theme-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; opacity:0.8;"></svg>
           <span id="theme-text">Modo Claro</span>
+        </button>
+        <!-- Logout Button -->
+        <button type="button" id="logout-btn" class="menu-item" style="display: none; cursor: pointer; background: transparent; border: 1px solid var(--color-expense); padding: 8px 12px; margin-top: 4px; justify-content: center; font-size: 12px; gap: 8px; width: 100%; color: var(--color-expense);">
+          <svg class="menu-icon" viewBox="0 0 24 24" style="width: 14px; height: 14px; color: var(--color-expense);"><path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z" fill="currentColor"/></svg>
+          <span>Sair (Logout)</span>
         </button>
       </div>
     </aside>

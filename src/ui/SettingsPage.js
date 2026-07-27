@@ -1,19 +1,20 @@
 class SettingsPage {
   static render(app, state) {
-    const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
-    
-    // Load individual user theme preferences (defaulting to dark)
-    const themePaula = localStorage.getItem("lumen_theme_Paula") || "dark";
-    const themeAlcides = localStorage.getItem("lumen_theme_Alcides") || "dark";
-    const themeCasal = localStorage.getItem("lumen_theme_Casal") || "dark";
+    try {
+      const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+      
+      // Load individual user theme preferences (defaulting to dark)
+      const themePaula = localStorage.getItem("lumen_theme_Paula") || "dark";
+      const themeAlcides = localStorage.getItem("lumen_theme_Alcides") || "dark";
+      const themeCasal = localStorage.getItem("lumen_theme_Casal") || "dark";
 
-    const isSbConnected = app.storage.isSupabaseConnected();
-    const sbUrl = localStorage.getItem("lumen_supabase_url") || "";
-    const sbKey = localStorage.getItem("lumen_supabase_key") || "";
-    const sbEmail = localStorage.getItem("lumen_supabase_email") || "";
+      const isSbConnected = app.storage.isSupabaseConnected();
+      const sbUrl = localStorage.getItem("lumen_supabase_url") || "";
+      const sbKey = localStorage.getItem("lumen_supabase_key") || "";
+      const sbEmail = localStorage.getItem("lumen_supabase_email") || "";
 
-    return `
-      <div class="settings-container animate-fade-in" style="display:flex; flex-direction:column; gap:24px; max-width: 600px; margin: 0 auto; padding: 20px 0;">
+      return `
+        <div class="settings-container animate-fade-in" style="display:flex; flex-direction:column; gap:24px; max-width: 600px; margin: 0 auto; padding: 20px 0;">
         
         <div class="section-card">
           <h3>Configurações do Lumen</h3>
@@ -207,6 +208,39 @@ class SettingsPage {
           </form>
         </div>
 
+        <!-- Cadastro de Novos Usuários Card (Apenas Admin) -->
+        ${app.userRole === 'admin' ? `
+          <div class="section-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--text-secondary);">
+              Cadastrar Novo Usuário na Nuvem
+            </h4>
+            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+              Cadastre uma nova credencial no Supabase para permitir o acesso de outro membro ou leitor da família.
+            </p>
+            <form id="settings-signup-form" style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="signup-email" style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">E-mail do Usuário</label>
+                <input type="email" id="signup-email" placeholder="usuario@lumen.com" required style="padding: 8px; font-size: 12px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="signup-password" style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Senha Provisória</label>
+                <input type="password" id="signup-password" placeholder="Mínimo 6 caracteres" required style="padding: 8px; font-size: 12px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="signup-role" style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">Nível de Acesso (UAC)</label>
+                <select id="signup-role" style="padding: 8px; font-size: 12px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; font-family: inherit;">
+                  <option value="editor">Editor (Pode inserir e editar dados)</option>
+                  <option value="viewer">Leitor (Apenas visualização)</option>
+                  <option value="admin">Administrador (Acesso completo e UAC)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600; margin-top: 4px; cursor: pointer;">
+                Criar Usuário na Nuvem
+              </button>
+            </form>
+          </div>
+        ` : ''}
+
         <!-- Zona de Perigo Card -->
         <div class="section-card" style="padding: 24px; border: 1px solid var(--color-expense-bg); background-color: hsla(0, 85%, 60%, 0.03); display: flex; flex-direction: column; gap: 16px;">
           <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--color-expense);">
@@ -223,6 +257,20 @@ class SettingsPage {
 
       </div>
     `;
+    } catch (e) {
+      console.error("Erro ao renderizar SettingsPage:", e);
+      return `
+        <div class="settings-container animate-fade-in" style="padding: 20px 0; max-width: 600px; margin: 0 auto;">
+          <div class="section-card" style="border: 1px solid var(--color-expense-bg); background: hsla(0, 85%, 60%, 0.05);">
+            <h3 style="color: var(--color-expense);">⚠️ Falha ao Carregar Configurações</h3>
+            <p style="font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin-top: 8px;">
+              Ocorreu um erro ao renderizar as configurações: <code>${e.message}</code>
+            </p>
+            <button class="btn btn-secondary" onclick="window.location.reload()" style="margin-top: 12px; font-size: 12px;">Recarregar Aplicativo</button>
+          </div>
+        </div>
+      `;
+    }
   }
 
   static initEvents(app, state, appInstance) {
@@ -548,6 +596,50 @@ class SettingsPage {
                 alert(err.message);
               }
             }
+          }
+        });
+      });
+    }
+
+    // 10. Handle Signup Form Submit (Create New User)
+    const signupForm = document.getElementById("settings-signup-form");
+    if (signupForm) {
+      signupForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("signup-email").value.trim().toLowerCase();
+        const password = document.getElementById("signup-password").value;
+        const role = document.getElementById("signup-role").value;
+
+        if (!email || password.length < 6) {
+          alert("Por favor, digite um e-mail válido e uma senha com no mínimo 6 caracteres.");
+          return;
+        }
+
+        app.requestAdminAuthorization("Cadastrar Novo Usuário na Nuvem", async () => {
+          const submitBtn = signupForm.querySelector("button[type='submit']");
+          const originalText = submitBtn.textContent;
+          submitBtn.textContent = "Processando...";
+          submitBtn.setAttribute("disabled", "true");
+
+          try {
+            // 1. Sign up credential in Supabase Auth
+            await app.storage.signUpUser(email, password);
+
+            // 2. Map user role in settings
+            if (!app.settings.user_roles) app.settings.user_roles = {};
+            app.settings.user_roles[email] = role;
+            await app.save();
+
+            alert(`Usuário ${email} cadastrado com sucesso na nuvem com papel de ${role === 'admin' ? 'Administrador' : (role === 'editor' ? 'Editor' : 'Leitor')}!`);
+            
+            // Clean inputs
+            signupForm.reset();
+            appInstance.renderActivePage();
+          } catch (err) {
+            alert("Falha ao cadastrar usuário na nuvem: " + err.message);
+          } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.removeAttribute("disabled");
           }
         });
       });

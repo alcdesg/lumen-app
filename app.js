@@ -256,6 +256,11 @@ class ApplicationController {
         }
       }
     }
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.style.display = isSbConnected ? 'flex' : 'none';
+    }
   }
 
   /**
@@ -300,6 +305,8 @@ class ApplicationController {
         let key = document.getElementById('setup-sb-key').value.trim();
         const email = document.getElementById('setup-sb-email').value.trim();
         const pass = document.getElementById('setup-sb-pass').value;
+        const rememberCheckbox = document.getElementById('setup-sb-remember');
+        const remember = rememberCheckbox ? rememberCheckbox.checked : false;
 
         // Fallback to window config injection, saved parameters or default project keys
         if (!url) url = (window.LUMEN_CONFIG && window.LUMEN_CONFIG.SUPABASE_URL) || localStorage.getItem("lumen_supabase_url") || "https://jmxhhxitjqwjymwwzcvo.supabase.co";
@@ -312,7 +319,7 @@ class ApplicationController {
 
         try {
           // Connect and authenticate
-          await this.storage.loginSupabase(url, key, email, pass);
+          await this.storage.loginSupabase(url, key, email, pass, remember);
           localStorage.setItem('lumen_supabase_email', email);
 
           // Initialize app with Supabase cloud data
@@ -399,6 +406,21 @@ class ApplicationController {
             alert('Desconectado do Supabase Cloud. Voltando ao banco local do navegador.');
           } catch (err) {
             alert('Erro ao desconectar: ' + err.message);
+          }
+        }
+      });
+    }
+
+    // 1.8 Logout Button Click Handler
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        if (confirm("Deseja mesmo sair da sua conta e desconectar do Supabase?")) {
+          try {
+            await this.storage.logoutSupabase();
+            window.location.reload(); // Hard reload to clear state and show login screen
+          } catch (err) {
+            alert("Erro ao deslogar: " + err.message);
           }
         }
       });

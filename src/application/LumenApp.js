@@ -87,11 +87,13 @@ class LumenApp {
    * Intercepts critical actions with a UAC password prompt if not admin.
    */
   requestAdminAuthorization(actionName, onSuccess) {
-    if (this.isAdmin()) {
-      onSuccess();
+    // 1. Check if the active user is an admin profile
+    if (!this.isAdmin()) {
+      alert(`Acesso negado: A ação "${actionName}" requer permissões de Administrador.`);
       return;
     }
 
+    // 2. Administrators must still elevate by entering the admin master password (UAC)
     const uacModal = document.getElementById("uac-modal");
     const uacActionName = document.getElementById("uac-action-name");
     const uacForm = document.getElementById("uac-form");
@@ -100,12 +102,12 @@ class LumenApp {
 
     if (!uacModal) {
       // Fallback popup if DOM elements aren't present
-      const pass = prompt(`Esta ação requer privilégios de Administrador (${actionName}). Digite a senha mestra de administração:`);
+      const pass = prompt(`Confirmação de segurança UAC: Digite a senha mestra de administração para autorizar a ação "${actionName}":`);
       const expected = this.settings.admin_master_password || "admin123";
       if (pass === expected) {
         onSuccess();
       } else if (pass !== null) {
-        alert("Acesso negado.");
+        alert("Acesso negado: Senha mestra incorreta.");
       }
       return;
     }
