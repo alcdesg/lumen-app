@@ -1808,4 +1808,235 @@ body.light-theme .mockup-header {
   display: none !important;
 }
 
+/* ==========================================
+ * RESPONSIVIDADE MOBILE & TABLET (Lumen Mobile)
+ * ========================================== */
+@media (max-width: 768px) {
+  /* 1. Layout Base */
+  body {
+    overflow-y: auto;
+    height: auto;
+  }
+  
+  .app-container {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* 2. Barra Lateral (Slide Drawer) */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 20px 0 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .app-sidebar.active {
+    transform: translateX(0);
+  }
+
+  /* Scrim Overlay com Blur fosco */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* 3. Cabeçalho Mobile e Botão Hambúrguer */
+  .app-main {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .app-header {
+    height: 64px;
+    padding: 0 16px;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-base);
+    z-index: 90;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-btn:active {
+    background: var(--bg-card-hover);
+    transform: scale(0.95);
+  }
+
+  .header-welcome h2 {
+    font-size: 15px !important;
+  }
+
+  .header-welcome p {
+    font-size: 10px !important;
+  }
+
+  /* Oculta as ações originais no topo do cabeçalho */
+  .header-actions {
+    display: none !important;
+  }
+
+  /* 4. Corpo e Espaçamento de Telas */
+  .content-body {
+    padding: 16px;
+  }
+
+  /* 5. Dashboard Grid (Resumos Financeiros) */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* 6. FAB (Floating Action Button) - Botão Flutuante */
+  body.light-theme #global-add-tx-btn,
+  #global-add-tx-btn {
+    position: fixed !important;
+    bottom: 24px !important;
+    right: 24px !important;
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 8px 24px rgba(110, 68, 255, 0.4) !important;
+    z-index: 900 !important;
+    font-size: 0 !important;
+    padding: 0 !important;
+  }
+
+  #global-add-tx-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+    margin: 0 !important;
+  }
+
+  /* 7. Adaptação de Tabelas para Cards Mobile (Transactions & History) */
+  .table-card table,
+  .table-card thead,
+  .table-card tbody,
+  .table-card th,
+  .table-card td,
+  .table-card tr {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .table-card thead {
+    display: none !important;
+  }
+
+  .table-card tr {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    background: var(--bg-card);
+    margin-bottom: 16px;
+    padding: 16px;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .table-card td {
+    padding: 8px 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 13px !important;
+    text-align: right !important;
+  }
+
+  /* Injeta a label respectiva para cada coluna usando nth-child */
+  .table-card td:nth-child(1)::before { content: "Data:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(2)::before { content: "Descrição:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(3)::before { content: "Categoria:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(4)::before { content: "Conta:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(5)::before { content: "Membro:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(6)::before { content: "Status:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  .table-card td:nth-child(7)::before { content: "Valor:"; font-weight: 600; color: var(--text-secondary); text-align: left; }
+  
+  .table-card td.row-actions {
+    justify-content: flex-end !important;
+    margin-top: 10px !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 12px !important;
+    gap: 12px !important;
+  }
+
+  .table-card td.row-actions::before {
+    display: none !important;
+  }
+
+  /* 8. Formulário de Filtros de Transações (Toolbar) */
+  .table-card > div[style*="display: flex"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .table-card > div[style*="display: flex"] > div {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .table-card > div[style*="display: flex"] select,
+  .table-card > div[style*="display: flex"] input {
+    flex-grow: 1 !important;
+    width: 100% !important;
+  }
+
+  /* 9. Ajuste de Telas de Contas e Categorias */
+  .accounts-container,
+  .accounts-columns {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* 10. Modais de Ação */
+  .modal-content {
+    width: 95% !important;
+    max-height: 90vh !important;
+    padding: 20px !important;
+    margin: 10px !important;
+  }
+}
+
 

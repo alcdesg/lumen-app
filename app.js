@@ -267,6 +267,31 @@ class ApplicationController {
    * Binds global application shell buttons and modal hooks.
    */
   setupGlobalEvents() {
+    // Mobile Navigation Drawer triggers
+    const menuToggleBtn = document.getElementById('mobile-menu-toggle-btn');
+    const sidebar = document.querySelector('.app-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (menuToggleBtn && sidebar && overlay) {
+      const toggleMenu = () => {
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+      };
+
+      menuToggleBtn.addEventListener('click', toggleMenu);
+      overlay.addEventListener('click', toggleMenu);
+
+      // Auto-close menu drawer when selecting page route links on mobile
+      document.querySelectorAll('.menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+          }
+        });
+      });
+    }
+
     // 0. Setup screen triggers
     const setupSkipBtn = document.getElementById('setup-skip-btn');
     const apiToggleBtn = document.getElementById('setup-api-toggle-btn');
