@@ -1808,6 +1808,29 @@ body.light-theme .mockup-header {
   display: none !important;
 }
 
+/* Tooltip de Orientação para Lançamentos */
+.help-tooltip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--border-color);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: help;
+  vertical-align: middle;
+  transition: var(--transition-smooth);
+}
+
+.help-tooltip:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
 /* ==========================================
  * RESPONSIVIDADE MOBILE & TABLET (Lumen Mobile)
  * ========================================== */
@@ -1923,7 +1946,49 @@ body.light-theme .mockup-header {
     gap: 16px !important;
   }
 
-  /* 6. FAB (Floating Action Button) - Botão Flutuante */
+  /* Otimização de fontes do banner para evitar estouro horizontal */
+  .decision-margin-bubble {
+    padding: 8px 12px !important;
+    min-width: 100px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .decision-margin-value {
+    font-size: 20px !important;
+    word-break: break-all !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Linha dos KPIs */
+  .kpis-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .kpi-card {
+    width: 100% !important;
+    padding: 14px !important;
+  }
+
+  /* Eliminação do scroll horizontal nas 4 seções inferiores do dashboard */
+  .recent-split,
+  .analysis-split {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+
+  .section-card {
+    width: 100% !important;
+    padding: 16px !important;
+    overflow-x: hidden !important; /* Trava estouro */
+  }
+
+  /* 6. FAB (Floating Action Button) - Botão Flutuante Roxo */
+  #global-add-tx-btn .btn-text {
+    display: none !important;
+  }
+
   body.light-theme #global-add-tx-btn,
   #global-add-tx-btn {
     position: fixed !important;
@@ -1937,14 +2002,17 @@ body.light-theme .mockup-header {
     justify-content: center !important;
     box-shadow: 0 8px 24px rgba(110, 68, 255, 0.4) !important;
     z-index: 900 !important;
-    font-size: 0 !important;
+    border: none !important;
     padding: 0 !important;
+    background-color: var(--accent-primary) !important;
+    color: white !important;
   }
 
   #global-add-tx-btn svg {
     width: 24px !important;
     height: 24px !important;
     margin: 0 !important;
+    display: block !important;
   }
 
   /* 7. Adaptação de Tabelas para Cards Mobile (Transactions & History) */
@@ -2036,6 +2104,76 @@ body.light-theme .mockup-header {
     max-height: 90vh !important;
     padding: 20px !important;
     margin: 10px !important;
+  }
+
+  /* 11. Adaptação da Tela de Login Split-Screen */
+  .login-split-container {
+    flex-direction: column !important;
+  }
+  
+  .login-visual-panel {
+    display: none !important; /* Esconde painel visual no mobile */
+  }
+  
+  .login-form-panel {
+    width: 100% !important;
+    min-height: 100vh !important;
+    padding: 24px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .login-card-saas {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  /* 12. Otimização do Calendário Financeiro para Celular */
+  .calendar-grid {
+    gap: 4px !important;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1 / 1 !important;
+    padding: 4px !important;
+    min-height: 42px !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* Oculta valores numéricos individuais nas células para evitar sobreposição */
+  .calendar-day .day-flows,
+  .calendar-day .day-balance {
+    display: none !important;
+  }
+
+  .day-number {
+    font-size: 13px !important;
+  }
+
+  .weekday-header {
+    padding-bottom: 4px !important;
+    font-size: 10px !important;
+  }
+
+  /* Oculta a etiqueta texto 'HOJE' */
+  .calendar-day.today-day::before {
+    display: none !important;
+  }
+
+  /* Destaca o dia de hoje com background roxo semi-transparente */
+  .calendar-day.today-day {
+    background-color: var(--accent-primary-glow) !important;
+  }
+
+  /* Oculta popovers nativos de hover que não funcionam no touch */
+  .day-popover {
+    display: none !important;
   }
 }
 

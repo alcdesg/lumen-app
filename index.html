@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=1.0.6">
+  <link rel="stylesheet" href="index.css?v=1.0.7">
   <!-- Supabase Cloud CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Lumen Environment Credentials Config -->
@@ -132,7 +132,6 @@
           <span class="logo-dot"></span>
           <h1>Lumen</h1>
         </div>
-        <span class="logo-tag">MVP</span>
       </div>
 
       <nav class="sidebar-menu">
@@ -180,10 +179,6 @@
       </nav>
 
       <div class="sidebar-footer">
-        <a href="tests.html" target="_blank" class="tests-link">
-          <svg class="tests-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-          Suíte de Testes
-        </a>
         <!-- OneDrive Sync Status Pill -->
         <div class="onedrive-pill disconnected" id="onedrive-sync-pill">
           <div class="pill-dot"></div>
@@ -224,7 +219,7 @@
         <div class="header-actions">
           <button class="btn btn-primary" id="global-add-tx-btn">
             <svg class="btn-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            Nova Movimentação
+            <span class="btn-text">Nova Movimentação</span>
           </button>
         </div>
       </header>
@@ -258,22 +253,22 @@
         </div>
         
         <div class="form-row">
-          <label for="tx-amount">Valor (R$)*</label>
+          <label for="tx-amount">Valor (R$)* <span class="help-tooltip" title="Valor numérico da transação em reais. Não precisa digitar o sinal de menos para despesas.">ⓘ</span></label>
           <input type="number" id="tx-amount" step="0.01" placeholder="0,00" required autofocus autocomplete="off">
         </div>
 
         <div class="form-row">
-          <label for="tx-description">Descrição*</label>
+          <label for="tx-description">Descrição* <span class="help-tooltip" title="Breve identificação da movimentação (ex: 'Supermercado Semanal', 'Combustível', 'Salário').">ⓘ</span></label>
           <input type="text" id="tx-description" placeholder="Ex: Supermercado Semanal" required autocomplete="off">
         </div>
 
         <div class="form-grid">
           <div class="form-row">
-            <label for="tx-date">Data*</label>
+            <label for="tx-date">Data* <span class="help-tooltip" title="A data em que a movimentação ocorreu ou está planejada para acontecer.">ⓘ</span></label>
             <input type="date" id="tx-date" required>
           </div>
           <div class="form-row">
-            <label for="tx-status">Status*</label>
+            <label for="tx-status">Status* <span class="help-tooltip" title="Realizado (dinheiro já debitado/creditado) ou Previsto (agendamento futuro).">ⓘ</span></label>
             <select id="tx-status">
               <option value="confirmed">Confirmado (Realizado)</option>
               <option value="planned">Planejado (Previsto)</option>
@@ -283,11 +278,14 @@
 
         <div class="form-grid">
           <div class="form-row">
-            <label for="tx-account">Conta*</label>
-            <select id="tx-account" required></select>
+            <label for="tx-account">Conta* <span class="help-tooltip" title="A conta ou caixinha bancária de onde sairá/entrará este valor.">ⓘ</span></label>
+            <div style="display: flex; gap: 8px;">
+              <select id="tx-account" required style="flex: 1;"></select>
+              <button type="button" id="quick-add-new-acc-btn" class="btn btn-secondary" style="padding: 0 10px; font-weight: bold; font-size: 16px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" title="Criar Nova Conta na hora">+</button>
+            </div>
           </div>
           <div class="form-row">
-            <label for="tx-category">Categoria*</label>
+            <label for="tx-category">Categoria* <span class="help-tooltip" title="Classifique a movimentação para otimizar os relatórios e projeções de fluxo.">ⓘ</span></label>
             <div style="display: flex; gap: 8px;">
               <select id="tx-category" required style="flex: 1;"></select>
               <button type="button" id="quick-add-new-cat-btn" class="btn btn-secondary" style="padding: 0 10px; font-weight: bold; font-size: 16px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" title="Criar Nova Categoria na hora">+</button>
@@ -296,7 +294,7 @@
         </div>
 
         <div class="form-row">
-          <label for="tx-member">Membro Responsável*</label>
+          <label for="tx-member">Membro Responsável* <span class="help-tooltip" title="Quem realizou ou é o responsável por este lançamento.">ⓘ</span></label>
           <select id="tx-member" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: var(--border-radius-md); font-family: inherit; font-size: 13px;">
             <option value="Casal">Casal (Compartilhado)</option>
             <option value="Paula">Paula</option>
@@ -349,9 +347,9 @@
   <script src="src/domain/Account.js"></script>
   <script src="src/domain/Category.js"></script>
   <script src="src/domain/Transaction.js"></script>
-  <script src="src/infrastructure/Storage.js?v=1.0.6"></script>
+  <script src="src/infrastructure/Storage.js?v=1.0.7"></script>
   <script src="src/infrastructure/CsvParser.js"></script>
-  <script src="src/application/LumenApp.js?v=1.0.6"></script>
+  <script src="src/application/LumenApp.js?v=1.0.7"></script>
   <script src="src/ui/PanelPage.js"></script>
   <script src="src/ui/CalendarPage.js"></script>
   <script src="src/ui/TransactionsPage.js"></script>
@@ -361,7 +359,7 @@
   <script src="src/ui/ImportPage.js?v=1.0.5"></script>
   <script src="src/ui/HistoryPage.js"></script>
   <script src="src/ui/HelpPage.js"></script>
-  <script src="src/ui/SettingsPage.js?v=1.0.6"></script>
-  <script src="app.js?v=1.0.6"></script>
+  <script src="src/ui/SettingsPage.js?v=1.0.7"></script>
+  <script src="app.js?v=1.0.7"></script>
 </body>
 </html>

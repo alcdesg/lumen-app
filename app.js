@@ -258,8 +258,10 @@ class ApplicationController {
     }
 
     const logoutBtn = document.getElementById('logout-btn');
+    const setupScreen = document.getElementById('setup-screen');
+    const isSetupActive = setupScreen && setupScreen.classList.contains('active');
     if (logoutBtn) {
-      logoutBtn.style.display = isSbConnected ? 'flex' : 'none';
+      logoutBtn.style.display = isSetupActive ? 'none' : 'flex';
     }
   }
 
@@ -316,6 +318,7 @@ class ApplicationController {
         this.app.userRole = 'viewer';
         
         this.updateWelcomeText();
+        this.updateSyncUI();
         this.renderActivePage();
       });
     }
@@ -560,6 +563,33 @@ class ApplicationController {
         }
       });
     }
+
+    // Quick Add Account Click Handler
+    const quickAddNewAccBtn = document.getElementById('quick-add-new-acc-btn');
+    if (quickAddNewAccBtn) {
+      quickAddNewAccBtn.addEventListener('click', async () => {
+        const name = prompt("Criar Nova Conta:\nDigite o nome da conta:");
+        if (name && name.trim()) {
+          const cleanName = name.trim();
+          let acc = this.app.accounts.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
+          if (!acc) {
+            try {
+              acc = this.app.addAccount({ name: cleanName, initial_balance: 0 });
+              await this.app.save();
+            } catch (err) {
+              alert(err.message);
+              return;
+            }
+          }
+          // Reload options and auto-select new account
+          this.populateQuickAddAccounts();
+          const accSelect = document.getElementById('tx-account');
+          if (accSelect) {
+            accSelect.value = acc.id;
+          }
+        }
+      });
+    }
   }
 
   /**
@@ -580,12 +610,7 @@ class ApplicationController {
     document.getElementById('tx-status').value = (dateStr || today) <= today ? 'confirmed' : 'planned';
 
     // Populate Account select
-    const accSelect = document.getElementById('tx-account');
-    let accOptions = '';
-    this.app.accounts.filter(a => a.is_active).forEach(acc => {
-      accOptions += `<option value="${acc.id}">${acc.name}</option>`;
-    });
-    accSelect.innerHTML = accOptions;
+    this.populateQuickAddAccounts();
 
     // Reset toggle to Expense
     const toggleExpense = document.getElementById('toggle-expense');
@@ -603,6 +628,21 @@ class ApplicationController {
     setTimeout(() => {
       document.getElementById('tx-amount').focus();
     }, 150);
+  }
+
+  populateQuickAddAccounts() {
+    const accSelect = document.getElementById('tx-account');
+    if (!accSelect) return;
+
+    let accOptions = '';
+    const sortedAccs = [...this.app.accounts]
+      .filter(a => a.is_active)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedAccs.forEach(acc => {
+      accOptions += `<option value="${acc.id}">${acc.name}</option>`;
+    });
+    accSelect.innerHTML = accOptions;
   }
 
   populateQuickAddCategories(type) {

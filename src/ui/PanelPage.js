@@ -17,7 +17,19 @@ class PanelPage {
     
     // 3. Render Decision Banner
     let decisionHtml = '';
-    if (kpis.decisionMargin > 0) {
+    if (activeTxs.length === 0) {
+      decisionHtml = `
+        <div class="decision-statement">
+          <h3>Margem de Decisão</h3>
+          <h2 style="color: var(--text-secondary);">Aguardando Lançamentos</h2>
+          <p>Nenhuma movimentação foi encontrada. Cadastre suas contas, categorias e transações no menu lateral para visualizar sua margem de decisão e projeções financeiras.</p>
+        </div>
+        <div class="decision-margin-bubble">
+          <div class="decision-margin-title">Disponível Hoje</div>
+          <div class="decision-margin-value" style="color: var(--text-muted);">---</div>
+        </div>
+      `;
+    } else if (kpis.decisionMargin > 0) {
       decisionHtml = `
         <div class="decision-statement">
           <h3>Margem de Decisão</h3>
