@@ -122,6 +122,7 @@ class SettingsPage {
                 Conectar e Carregar Dados do Banco
               </button>
             </form>
+          `}
         </div>
 
         <!-- JSON Backup Import Card -->
@@ -178,7 +179,7 @@ class SettingsPage {
               <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Mapeamento de Perfis de Acesso</label>
               <div id="uac-roles-list" style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
-                  <span style="font-family: monospace; color: var(--text-muted);">neto_gurgel@hotmail.com</span>
+                  <span style="font-family: monospace; color: var(--text-muted);">alcides@lumen.com.br</span>
                   <span class="badge" style="background: var(--color-income-bg); color: var(--color-income);">Administrador Master</span>
                 </div>
                 ${Object.entries(app.settings.user_roles || {}).map(([email, role]) => `

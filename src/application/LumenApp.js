@@ -50,7 +50,8 @@ class LumenApp {
     const emailLower = email.toLowerCase().trim();
     
     // 1. Master admin check
-    if (emailLower === 'neto_gurgel@hotmail.com') {
+    const masterAdmins = ['neto_gurgel@hotmail.com', 'alcides@lumen.com.br'];
+    if (masterAdmins.includes(emailLower)) {
       return 'admin';
     }
 

@@ -344,8 +344,9 @@ class ApplicationController {
 
           // Resolve dynamic user profile name based on email
           let activeUser = "Casal";
-          if (email.toLowerCase().trim() === 'neto_gurgel@hotmail.com') activeUser = "Alcides";
-          else if (email.toLowerCase().includes('paula')) activeUser = "Paula";
+          const emailLower = email.toLowerCase().trim();
+          if (emailLower === 'neto_gurgel@hotmail.com' || emailLower === 'alcides@lumen.com.br') activeUser = "Alcides";
+          else if (emailLower.includes('paula')) activeUser = "Paula";
           localStorage.setItem("lumen_active_user", activeUser);
 
           // Update header & pills
