@@ -24,10 +24,10 @@ class LumenApp {
     await this.storage.init();
     const data = await this.storage.loadData();
     
-    // Instantiate entities
-    this.accounts = data.accounts.map(a => new Account(a));
-    this.categories = data.categories.map(c => new Category(c));
-    this.transactions = data.transactions.map(t => new Transaction(t));
+    // Guardamos a base de dados consolidada bruta
+    this.allAccounts = data.accounts || [];
+    this.allTransactions = data.transactions || [];
+    this.categories = (data.categories || []).map(c => new Category(c));
     this.batches = data.batches || [];
     this.settings = data.settings || { couple_names: 'Paula & Alcides', admin_master_password: 'admin123', user_roles: {} };
 
@@ -40,6 +40,37 @@ class LumenApp {
       this.currentUserEmail = null;
       this.userRole = 'viewer';
     }
+
+    // Filtra visibilidade ativa baseada no perfil logado
+    this.filterVisibleData();
+  }
+
+  /**
+   * Filters in-memory active lists accounts/transactions based on current logged user permissions.
+   */
+  filterVisibleData() {
+    const email = this.currentUserEmail ? this.currentUserEmail.toLowerCase().trim() : '';
+
+    // 1. Filtrar Contas acessíveis
+    const visibleAccounts = this.allAccounts.filter(a => {
+      if (!a.is_active) return false;
+      // Admin master tem acesso irrestrito
+      if (this.isAdmin()) return true;
+      // Contas sem allowed_emails são conjuntas
+      if (!a.allowed_emails || a.allowed_emails.length === 0) return true;
+      // Contas cujo e-mail do usuário ativo está na lista
+      return a.allowed_emails.map(e => e.toLowerCase().trim()).includes(email);
+    });
+
+    this.accounts = visibleAccounts.map(a => new Account(a));
+
+    // 2. Filtrar Transações associadas às contas acessíveis
+    const visibleAccountIds = new Set(this.accounts.map(a => a.id));
+    const visibleTxs = this.allTransactions.filter(t => {
+      return visibleAccountIds.has(t.account_id);
+    });
+
+    this.transactions = visibleTxs.map(t => new Transaction(t));
   }
 
   /**
@@ -145,16 +176,108 @@ class LumenApp {
   }
 
   /**
-   * Saves the current memory state back to persistent storage.
+   * Saves the current memory state back to persistent storage, safely merging with unviewed private data.
    */
   async save() {
+    // 1. Mesclar alterações das contas ativas de volta na base consolidada bruta (allAccounts)
+    const activeAccMap = new Map(this.accounts.map(a => [a.id, a]));
+    const mergedAccounts = this.allAccounts.map(rawA => {
+      if (activeAccMap.has(rawA.id)) {
+        const accObj = activeAccMap.get(rawA.id);
+        return {
+          ...rawA,
+          name: accObj.name,
+          initial_balance: accObj.initial_balance,
+          is_active: accObj.is_active,
+          allowed_emails: accObj.allowed_emails,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return rawA;
+    });
+
+    const existingRawAccIds = new Set(this.allAccounts.map(a => a.id));
+    this.accounts.forEach(acc => {
+      if (!existingRawAccIds.has(acc.id)) {
+        mergedAccounts.push({
+          id: acc.id,
+          name: acc.name,
+          initial_balance: acc.initial_balance,
+          is_active: acc.is_active,
+          allowed_emails: acc.allowed_emails,
+          created_at: acc.created_at,
+          updated_at: acc.updated_at,
+          created_by_user: acc.created_by_user
+        });
+      }
+    });
+
+    // 2. Mesclar alterações das transações ativas de volta na base consolidada bruta (allTransactions)
+    const activeTxMap = new Map(this.transactions.map(t => [`${t.id}-${t.version}`, t]));
+    const mergedTransactions = this.allTransactions.map(rawT => {
+      const key = `${rawT.id}-${rawT.version}`;
+      if (activeTxMap.has(key)) {
+        const txObj = activeTxMap.get(key);
+        return {
+          ...rawT,
+          account_id: txObj.account_id,
+          category_id: txObj.category_id,
+          description: txObj.description,
+          amount: txObj.amount,
+          date: txObj.date,
+          status: txObj.status,
+          is_active: txObj.is_active,
+          is_deleted: txObj.is_deleted,
+          parent_id: txObj.parent_id,
+          import_batch_id: txObj.import_batch_id,
+          replaced_by_version: txObj.replaced_by_version,
+          member: txObj.member,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return rawT;
+    });
+
+    const existingRawTxKeys = new Set(this.allTransactions.map(t => `${t.id}-${t.version}`));
+    this.transactions.forEach(t => {
+      const key = `${t.id}-${t.version}`;
+      if (!existingRawTxKeys.has(key)) {
+        mergedTransactions.push({
+          id: t.id,
+          version: t.version,
+          account_id: t.account_id,
+          category_id: t.category_id,
+          description: t.description,
+          amount: t.amount,
+          date: t.date,
+          status: t.status,
+          is_active: t.is_active,
+          is_deleted: t.is_deleted,
+          parent_id: t.parent_id,
+          import_batch_id: t.import_batch_id,
+          replaced_by_version: t.replaced_by_version,
+          member: t.member,
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+          created_by_user: t.created_by_user
+        });
+      }
+    });
+
+    this.allAccounts = mergedAccounts;
+    this.allTransactions = mergedTransactions;
+
+    // Gravar base consolidada no Supabase/OneDrive/LocalStorage
     await this.storage.saveData({
-      accounts: this.accounts,
+      accounts: this.allAccounts,
       categories: this.categories,
-      transactions: this.transactions,
+      transactions: this.allTransactions,
       batches: this.batches,
       settings: this.settings
     });
+
+    // Re-filtrar views locais
+    this.filterVisibleData();
   }
 
   /**
@@ -167,13 +290,13 @@ class LumenApp {
 
   // --- Account Management ---
 
-  addAccount({ name, initial_balance }) {
+  addAccount({ name, initial_balance, allowed_emails = [] }) {
     const existing = this.accounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a.is_active);
     if (existing) {
       throw new Error(`Uma conta ativa com o nome "${name}" já existe.`);
     }
 
-    const account = new Account({ name, initial_balance, created_by_user: this.currentUserEmail });
+    const account = new Account({ name, initial_balance, created_by_user: this.currentUserEmail, allowed_emails });
     account.validate();
     this.accounts.push(account);
     return account;

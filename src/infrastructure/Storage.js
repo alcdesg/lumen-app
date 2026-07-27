@@ -380,6 +380,13 @@ class Storage {
     localStorage.removeItem("lumen_supabase_email");
     localStorage.removeItem("lumen_supabase_remember");
     localStorage.removeItem("lumen_active_user");
+
+    // Clear all financial data caches to prevent security leaks between sessions
+    localStorage.removeItem("lumen_accounts");
+    localStorage.removeItem("lumen_categories");
+    localStorage.removeItem("lumen_transactions");
+    localStorage.removeItem("lumen_batches");
+    localStorage.removeItem("lumen_settings");
   }
 
   /**
@@ -400,6 +407,33 @@ class Storage {
       throw new Error(error.message);
     }
     return data;
+  }
+
+  /**
+   * Fetches the user credentials list using PostgreSQL RPC.
+   */
+  async getUsersList() {
+    if (!this.supabase) {
+      throw new Error("Supabase não está conectado.");
+    }
+    const { data, error } = await this.supabase.rpc("get_users_list");
+    if (error) {
+      throw new Error("Erro ao carregar lista de usuários: " + error.message);
+    }
+    return data || [];
+  }
+
+  /**
+   * Excludes a user credential from Supabase Auth system using PostgreSQL RPC.
+   */
+  async deleteUser(userId) {
+    if (!this.supabase) {
+      throw new Error("Supabase não está conectado.");
+    }
+    const { error } = await this.supabase.rpc("delete_user_by_id", { target_user_id: userId });
+    if (error) {
+      throw new Error("Erro ao excluir usuário: " + error.message);
+    }
   }
 
   isSupabaseConnected() {

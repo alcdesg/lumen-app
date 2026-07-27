@@ -240,6 +240,61 @@ class SettingsPage {
               </button>
             </form>
           </div>
+
+          <!-- Usuários Cadastrados na Nuvem Card (Apenas Admin) -->
+          <div class="section-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="margin: 0; font-size: 14px; text-transform: uppercase; color: var(--text-secondary);">
+              Usuários Cadastrados na Nuvem
+            </h4>
+            
+            ${!state.usersListLoaded ? `
+              <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0;">
+                Carregando usuários da nuvem...
+              </div>
+            ` : `
+              <div style="overflow-x: auto; width: 100%;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-weight: 600;">
+                      <th style="padding: 8px 4px;">E-mail</th>
+                      <th style="padding: 8px 4px;">Perfil</th>
+                      <th style="padding: 8px 4px;">Último Acesso</th>
+                      <th style="padding: 8px 4px; text-align: right;">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(state.usersList || []).map(u => {
+                      const emailTrim = u.email ? u.email.toLowerCase().trim() : '';
+                      const role = emailTrim === 'neto_gurgel@hotmail.com' || emailTrim === 'alcides@lumen.com.br'
+                        ? 'admin'
+                        : (app.settings.user_roles || {})[emailTrim] || 'viewer';
+                      
+                      const roleLabel = role === 'admin' ? 'Administrador' : (role === 'editor' ? 'Editor' : 'Leitor');
+                      const roleColor = role === 'admin' ? 'var(--color-income)' : (role === 'editor' ? 'var(--color-warning)' : 'var(--text-muted)');
+                      
+                      const lastLogin = u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString('pt-BR') : 'Nunca acessou';
+                      const isMaster = emailTrim === 'alcides@lumen.com.br' || emailTrim === 'neto_gurgel@hotmail.com';
+                      
+                      return `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                          <td style="padding: 10px 4px; font-family: monospace; word-break: break-all;">${u.email}</td>
+                          <td style="padding: 10px 4px; font-weight: 600; color: ${roleColor};">${roleLabel}</td>
+                          <td style="padding: 10px 4px; color: var(--text-secondary);">${lastLogin}</td>
+                          <td style="padding: 10px 4px; text-align: right;">
+                            ${isMaster ? `
+                              <span style="font-size: 10px; color: var(--text-muted); font-style: italic;">Master</span>
+                            ` : `
+                              <button type="button" class="btn btn-delete delete-cloud-user-btn" data-user-id="${u.id}" data-user-email="${u.email}" style="padding: 4px 8px; font-size: 10px; border-color: var(--color-expense); color: var(--color-expense); height: auto; cursor: pointer;">Excluir</button>
+                            `}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
         ` : ''}
 
         <!-- Zona de Perigo Card -->
@@ -602,6 +657,19 @@ class SettingsPage {
       });
     }
 
+    // User list lazy loader (Admin Only)
+    if (app.userRole === 'admin' && app.storage.isSupabaseConnected() && !state.usersListLoaded) {
+      state.usersList = [];
+      app.storage.getUsersList().then(users => {
+        state.usersList = users;
+        state.usersListLoaded = true;
+        appInstance.renderActivePage();
+      }).catch(err => {
+        console.error("Falha ao ler lista de usuários do Supabase:", err);
+        state.usersListLoaded = true; // Define true para evitar loops de erro
+      });
+    }
+
     // 10. Handle Signup Form Submit (Create New User)
     const signupForm = document.getElementById("settings-signup-form");
     if (signupForm) {
@@ -633,8 +701,9 @@ class SettingsPage {
 
             alert(`Usuário ${email} cadastrado com sucesso na nuvem com papel de ${role === 'admin' ? 'Administrador' : (role === 'editor' ? 'Editor' : 'Leitor')}!`);
             
-            // Clean inputs
+            // Clean inputs and reload list
             signupForm.reset();
+            state.usersListLoaded = false; // Força recarregar lista
             appInstance.renderActivePage();
           } catch (err) {
             alert("Falha ao cadastrar usuário na nuvem: " + err.message);
@@ -645,5 +714,35 @@ class SettingsPage {
         });
       });
     }
+
+    // Handle Delete User Click
+    const deleteUserBtns = document.querySelectorAll(".delete-cloud-user-btn");
+    deleteUserBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const userId = btn.getAttribute("data-user-id");
+        const userEmail = btn.getAttribute("data-user-email");
+
+        if (confirm(`Tem certeza que deseja excluir permanentemente o usuário ${userEmail} do Supabase? ele perderá acesso imediatamente.`)) {
+          app.requestAdminAuthorization("Excluir Usuário do Supabase", async () => {
+            try {
+              // 1. Deletar do Auth do Supabase via RPC
+              await app.storage.deleteUser(userId);
+
+              // 2. Remover do mapeamento de roles
+              if (app.settings.user_roles) {
+                delete app.settings.user_roles[userEmail.toLowerCase().trim()];
+                await app.save();
+              }
+
+              alert(`Usuário ${userEmail} excluído com sucesso!`);
+              state.usersListLoaded = false; // Força recarregar lista
+              appInstance.renderActivePage();
+            } catch (err) {
+              alert("Erro ao excluir usuário: " + err.message);
+            }
+          });
+        }
+      });
+    });
   }
 }

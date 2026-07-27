@@ -4,7 +4,7 @@
  * Account domain entity.
  */
 class Account {
-  constructor({ id, name, initial_balance = 0, is_active = true, created_at, updated_at, created_by_user = null }) {
+  constructor({ id, name, initial_balance = 0, is_active = true, created_at, updated_at, created_by_user = null, allowed_emails = [] }) {
     this.id = id || `acc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.name = name ? name.trim() : '';
     this.initial_balance = Number(initial_balance) || 0;
@@ -12,6 +12,7 @@ class Account {
     this.created_at = created_at || new Date().toISOString();
     this.updated_at = updated_at || new Date().toISOString();
     this.created_by_user = created_by_user || null;
+    this.allowed_emails = allowed_emails || [];
   }
 
   validate() {

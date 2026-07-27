@@ -84,6 +84,40 @@ class AccountsPage {
               <label for="acc-new-balance">Saldo Inicial (R$)*</label>
               <input type="number" id="acc-new-balance" placeholder="0,00" step="0.01" required autocomplete="off">
             </div>
+            <div class="form-row">
+              <label>Quem pode visualizar e editar esta conta?</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 6px;">
+                ${(() => {
+                  const registeredEmails = Object.keys(app.settings.user_roles || {});
+                  const activeEmail = localStorage.getItem("lumen_supabase_email") || "";
+                  if (activeEmail && !registeredEmails.includes(activeEmail)) {
+                    registeredEmails.push(activeEmail);
+                  }
+                  
+                  if (registeredEmails.length > 0) {
+                    return registeredEmails.map(email => {
+                      let friendlyName = email.split('@')[0];
+                      friendlyName = friendlyName.charAt(0).toUpperCase() + friendlyName.slice(1);
+                      if (friendlyName.toLowerCase() === 'neto_gurgel') friendlyName = 'Alcides';
+                      return `
+                        <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; font-size: 13px;">
+                          <input type="checkbox" class="acc-perm-checkbox" value="${email}" checked style="width: auto; height: auto;"> ${friendlyName}
+                        </label>
+                      `;
+                    }).join('');
+                  } else {
+                    return `
+                      <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" class="acc-perm-checkbox" value="paula" checked style="width: auto; height: auto;"> Paula
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" class="acc-perm-checkbox" value="alcides" checked style="width: auto; height: auto;"> Alcides
+                      </label>
+                    `;
+                  }
+                })()}
+              </div>
+            </div>
             <button type="submit" class="btn btn-primary" style="margin-top: 8px;">Adicionar Conta</button>
           </form>
         </div>
@@ -165,8 +199,21 @@ class AccountsPage {
         const name = document.getElementById("acc-new-name").value;
         const initial_balance = Number(document.getElementById("acc-new-balance").value);
 
+        // Get view permissions
+        const checkboxes = document.querySelectorAll(".acc-perm-checkbox");
+        const allowed_emails = [];
+        checkboxes.forEach(cb => {
+          if (cb.checked) {
+            allowed_emails.push(cb.value.toLowerCase().trim());
+          }
+        });
+
+        // Se todas as caixas estiverem marcadas, salvamos como Conjunta (array vazio)
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const finalAllowed = allChecked ? [] : allowed_emails;
+
         try {
-          app.addAccount({ name, initial_balance });
+          app.addAccount({ name, initial_balance, allowed_emails: finalAllowed });
           await app.save();
           appInstance.renderActivePage(); // Reload UI
         } catch (err) {
