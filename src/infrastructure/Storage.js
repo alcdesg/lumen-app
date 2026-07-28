@@ -247,6 +247,9 @@ class Storage {
     this.isUsingFileSystem = false;
     this.supabase = null;
     this.isUsingSupabase = false;
+    
+    // Fila sequencial (Mutex Promise Queue) para evitar gravação concorrente no Supabase
+    this.writeQueue = Promise.resolve();
   }
 
   /**
@@ -317,14 +320,6 @@ class Storage {
       }
     }
 
-    // 3. Initialize LocalStorage with seed data if completely empty
-    if (!localStorage.getItem("lumen_accounts")) {
-      localStorage.setItem("lumen_accounts", JSON.stringify(DEFAULT_ACCOUNTS));
-      localStorage.setItem("lumen_categories", JSON.stringify(DEFAULT_CATEGORIES));
-      localStorage.setItem("lumen_transactions", JSON.stringify(DEFAULT_TRANSACTIONS));
-      localStorage.setItem("lumen_batches", JSON.stringify([]));
-      localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
-    }
   }
 
   /**
@@ -369,6 +364,7 @@ class Storage {
    * Log out from Supabase database.
    */
   async logoutSupabase() {
+    this.disconnectRealtime(); // Desconecta do Realtime e Presence antes de limpar credenciais
     if (this.supabase) {
       await this.supabase.auth.signOut();
     }
@@ -449,19 +445,16 @@ class Storage {
 
     if (this.isUsingSupabase && this.supabase) {
       try {
-        const { data: { user } } = await this.supabase.auth.getUser();
-        if (user) {
-          console.log("Limpando dados do usuário no Supabase Cloud...");
-          const results = await Promise.all([
-            this.supabase.from("transactions").delete().eq("user_id", user.id),
-            this.supabase.from("batches").delete().eq("user_id", user.id),
-            this.supabase.from("accounts").delete().eq("user_id", user.id),
-            this.supabase.from("categories").delete().eq("user_id", user.id),
-            this.supabase.from("settings").delete().eq("user_id", user.id)
-          ]);
-          for (const res of results) {
-            if (res.error) throw res.error;
-          }
+        console.log("Limpando banco de dados completo do casal no Supabase Cloud...");
+        const results = await Promise.all([
+          this.supabase.from("transactions").delete().neq("id", "_non_existent_"),
+          this.supabase.from("batches").delete().neq("id", "_non_existent_"),
+          this.supabase.from("accounts").delete().neq("id", "_non_existent_"),
+          this.supabase.from("categories").delete().neq("id", "_non_existent_"),
+          this.supabase.from("settings").delete().neq("key", "_non_existent_")
+        ]);
+        for (const res of results) {
+          if (res.error) throw res.error;
         }
       } catch (e) {
         console.error("Falha ao limpar banco de dados no Supabase:", e);
@@ -620,60 +613,67 @@ class Storage {
    */
   async saveData({ accounts, categories, transactions, batches, settings }) {
     const data = { accounts, categories, transactions, batches, settings };
-    
-    if (this.isUsingSupabase && this.supabase) {
-      try {
-        console.log("Gravando dados diretamente no Supabase Cloud...");
-        const { data: { user } } = await this.supabase.auth.getUser();
-        if (!user) {
-          throw new Error("Usuário não autenticado no Supabase.");
+
+    // Fila sequencial (Mutex) para garantir que apenas um salvamento ocorra por vez de forma ordenada
+    return new Promise((resolve, reject) => {
+      this.writeQueue = this.writeQueue.then(async () => {
+        try {
+          if (this.isUsingSupabase && this.supabase) {
+            console.log("Gravando dados diretamente no Supabase Cloud...");
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (!user) {
+              throw new Error("Usuário não autenticado no Supabase.");
+            }
+
+            // Add user_id to all rows
+            const accountsWithUser = accounts.map(a => ({ ...a, user_id: user.id }));
+            const categoriesWithUser = categories.map(c => ({ ...c, user_id: user.id }));
+            const batchesWithUser = batches.map(b => ({ ...b, user_id: user.id }));
+            const txsWithUser = transactions.map(t => ({ ...t, user_id: user.id }));
+            const settingsRows = Object.entries(settings || {}).map(([key, val]) => ({
+              key,
+              value: val,
+              user_id: user.id
+            }));
+
+            // Upsert all tables in parallel
+            const results = await Promise.all([
+              this.supabase.from("accounts").upsert(accountsWithUser),
+              this.supabase.from("categories").upsert(categoriesWithUser),
+              this.supabase.from("batches").upsert(batchesWithUser),
+              this.supabase.from("transactions").upsert(txsWithUser),
+              this.supabase.from("settings").upsert(settingsRows)
+            ]);
+
+            for (const res of results) {
+              if (res.error) throw res.error;
+            }
+
+            // Also save to local storage for quick access
+            this.saveToLocalStorage(data);
+            resolve();
+            return;
+          }
+
+          // 1. Always save to LocalStorage for offline performance & safety
+          this.saveToLocalStorage(data);
+
+          // 2. Try to sync to the OneDrive folder
+          if (this.isUsingFileSystem && this.directoryHandle) {
+            try {
+              await this.saveToFileSystem(data);
+            } catch (e) {
+              console.error("Falha ao salvar no OneDrive, mantendo cópia em LocalStorage:", e);
+              throw new Error("Erro de sincronização com o OneDrive. Suas alterações foram salvas localmente no navegador.");
+            }
+          }
+          resolve();
+        } catch (e) {
+          console.error("Falha ao salvar dados:", e);
+          reject(new Error("Falha ao salvar dados: " + e.message));
         }
-
-        // Add user_id to all rows
-        const accountsWithUser = accounts.map(a => ({ ...a, user_id: user.id }));
-        const categoriesWithUser = categories.map(c => ({ ...c, user_id: user.id }));
-        const batchesWithUser = batches.map(b => ({ ...b, user_id: user.id }));
-        const txsWithUser = transactions.map(t => ({ ...t, user_id: user.id }));
-        const settingsRows = Object.entries(settings || {}).map(([key, val]) => ({
-          key,
-          value: val,
-          user_id: user.id
-        }));
-
-        // Upsert all tables in parallel
-        const results = await Promise.all([
-          this.supabase.from("accounts").upsert(accountsWithUser),
-          this.supabase.from("categories").upsert(categoriesWithUser),
-          this.supabase.from("batches").upsert(batchesWithUser),
-          this.supabase.from("transactions").upsert(txsWithUser),
-          this.supabase.from("settings").upsert(settingsRows)
-        ]);
-
-        for (const res of results) {
-          if (res.error) throw res.error;
-        }
-
-        // Also save to local storage for quick access
-        this.saveToLocalStorage(data);
-        return;
-      } catch (e) {
-        console.error("Falha ao salvar no Supabase Cloud:", e);
-        throw new Error("Falha ao salvar na nuvem: " + e.message);
-      }
-    }
-
-    // 1. Always save to LocalStorage for offline performance & safety
-    this.saveToLocalStorage(data);
-
-    // 2. Try to sync to the OneDrive folder
-    if (this.isUsingFileSystem && this.directoryHandle) {
-      try {
-        await this.saveToFileSystem(data);
-      } catch (e) {
-        console.error("Falha ao salvar no OneDrive, mantendo cópia em LocalStorage:", e);
-        throw new Error("Erro de sincronização com o OneDrive. Suas alterações foram salvas localmente no navegador.");
-      }
-    }
+      });
+    });
   }
 
   /**
@@ -735,6 +735,90 @@ class Storage {
     localStorage.setItem("lumen_batches", JSON.stringify(batches));
     if (settings) {
       localStorage.setItem("lumen_settings", JSON.stringify(settings));
+    }
+  }
+
+  /**
+   * Explicitly populates the LocalStorage with default seed data for guest/demo mode.
+   */
+  populateDemoSeedData() {
+    localStorage.setItem("lumen_accounts", JSON.stringify(DEFAULT_ACCOUNTS));
+    localStorage.setItem("lumen_categories", JSON.stringify(DEFAULT_CATEGORIES));
+    localStorage.setItem("lumen_transactions", JSON.stringify(DEFAULT_TRANSACTIONS));
+    localStorage.setItem("lumen_batches", JSON.stringify([]));
+    localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
+  }
+
+  /**
+   * Subscribes to Supabase Postgres Realtime changes and Presence tracking.
+   */
+  setupRealtimeSync(onDbChange, onPresenceChange) {
+    if (!this.supabase || !this.isUsingSupabase) return;
+
+    // Desconecta inscrições anteriores se houver
+    this.disconnectRealtime();
+
+    const email = localStorage.getItem("lumen_supabase_email") || "Convidado";
+    let friendlyName = email.split('@')[0];
+    friendlyName = friendlyName.charAt(0).toUpperCase() + friendlyName.slice(1);
+    if (friendlyName.toLowerCase() === 'neto_gurgel') friendlyName = 'Alcides';
+
+    // 1. Canal Realtime para atualizações nas tabelas do Banco
+    this.realtimeChannel = this.supabase
+      .channel("lumen-db-changes")
+      .on("postgres_changes", { event: "*", schema: "public" }, (payload) => {
+        console.log("Supabase Realtime: Alteração detectada no banco:", payload);
+        
+        // Evita loop infinito: só atualiza se a mudança veio de outro usuário
+        // ou se for uma atualização remota crítica
+        onDbChange(payload);
+      })
+      .subscribe();
+
+    // 2. Canal Presence para rastreamento de usuários online/offline
+    this.presenceChannel = this.supabase.channel("lumen-online-users", {
+      config: { presence: { key: email } }
+    });
+
+    this.presenceChannel
+      .on("sync", () => {
+        const state = this.presenceChannel.presenceState();
+        const onlineUsers = [];
+        Object.entries(state).forEach(([key, presences]) => {
+          const userMeta = presences[0] || {};
+          onlineUsers.push({
+            email: key,
+            name: userMeta.name || key.split('@')[0],
+            online_at: userMeta.online_at
+          });
+        });
+        onPresenceChange(onlineUsers);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await this.presenceChannel.track({
+            name: friendlyName,
+            online_at: new Date().toISOString()
+          });
+        }
+      });
+
+    console.log("Inscrições Realtime e Presence ativadas para:", friendlyName);
+  }
+
+  /**
+   * Cleans up and disconnects all Supabase channels.
+   */
+  disconnectRealtime() {
+    if (this.supabase) {
+      if (this.realtimeChannel) {
+        this.supabase.removeChannel(this.realtimeChannel);
+        this.realtimeChannel = null;
+      }
+      if (this.presenceChannel) {
+        this.supabase.removeChannel(this.presenceChannel);
+        this.presenceChannel = null;
+      }
     }
   }
 }

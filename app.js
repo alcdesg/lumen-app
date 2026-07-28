@@ -60,9 +60,12 @@ class ApplicationController {
     // 5.8 Update Theme Toggle UI
     this.updateThemeUI();
 
-    // 6. Initial Routing
-    this.router();
-    window.addEventListener('hashchange', () => this.router());
+    // 6. Activating Realtime Sync on startup if connected
+    this.initializeRealtime();
+
+    // 7. Initial Routing
+    await this.router();
+    window.addEventListener('hashchange', async () => await this.router());
   }
 
   async initSetupScreen() {
@@ -118,7 +121,7 @@ class ApplicationController {
   /**
    * Router to match hash paths to UI pages.
    */
-  router() {
+  async router() {
     const hash = window.location.hash || '#panel';
     const tabName = hash.substring(1);
     this.state.currentTab = tabName;
@@ -128,6 +131,16 @@ class ApplicationController {
     const activeMenu = document.getElementById(`nav-${tabName}`);
     if (activeMenu) {
       activeMenu.classList.add('active');
+    }
+
+    // "Veracidade imediata dos dados": Busca o estado atualizado do banco em toda navegação de tela
+    if (this.storage.isSupabaseConnected()) {
+      try {
+        await this.app.init();
+        this.updateWelcomeText();
+      } catch (err) {
+        console.warn("Falha ao sincronizar dados na navegação. Usando cache local:", err);
+      }
     }
 
     this.renderActivePage();
@@ -307,11 +320,18 @@ class ApplicationController {
     }
 
     if (setupSkipBtn) {
-      setupSkipBtn.addEventListener('click', () => {
+      setupSkipBtn.addEventListener('click', async () => {
         const setupScreen = document.getElementById('setup-screen');
         if (setupScreen) setupScreen.classList.remove('active');
         const warningBar = document.getElementById('demo-warning-bar');
         if (warningBar) warningBar.style.display = 'block';
+        
+        // Popula as sementes de teste sob demanda caso o LocalStorage esteja vazio
+        const accountsCached = localStorage.getItem("lumen_accounts");
+        if (!accountsCached || accountsCached === "[]") {
+          this.storage.populateDemoSeedData();
+          await this.app.init(); // Recarrega os dados em memória
+        }
         
         // Default to Demo mode with guest role
         localStorage.setItem("lumen_active_user", "Casal");
@@ -352,6 +372,9 @@ class ApplicationController {
 
           // Initialize app with Supabase cloud data
           await this.app.init();
+
+          // Ativa escuta em tempo real para o novo usuário
+          this.initializeRealtime();
 
           // Auto-migration check: If Supabase is empty but LocalStorage has data, prompt to migrate
           if (this.app.accounts.length === 0 && this.app.transactions.length === 0) {
@@ -690,6 +713,44 @@ class ApplicationController {
       // Sun Icon path
       themeIcon.innerHTML = `<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41zm-12.37 12.37c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.38.39-1.02 0-1.41z" fill="currentColor"/>`;
     }
+  }
+
+  /**
+   * Initializes Supabase Realtime DB synchronization and Presence tracking.
+   */
+  initializeRealtime() {
+    if (!this.storage.isSupabaseConnected()) return;
+
+    this.storage.setupRealtimeSync(
+      // 1. Mudanças de Banco em Tempo Real (Realtime)
+      async (payload) => {
+        console.log("App: Atualização detectada no Supabase. Sincronizando views...");
+        try {
+          await this.app.init(); // Recarrega do Supabase e refiltra as views em memória
+          this.updateWelcomeText();
+          this.updateSyncUI();
+          this.renderActivePage(); // Atualiza a tela atual em tempo real!
+        } catch (err) {
+          console.error("Falha ao re-sincronizar na escuta Realtime:", err);
+        }
+      },
+      // 2. Mudanças na lista de usuários online (Presence)
+      (onlineUsers) => {
+        const presenceEl = document.getElementById("header-presence");
+        if (!presenceEl) return;
+
+        if (onlineUsers.length > 0) {
+          presenceEl.style.display = "inline-flex";
+          const names = onlineUsers.map(u => u.name).join(", ");
+          presenceEl.innerHTML = `
+            <span style="display: inline-block; width: 6px; height: 6px; background-color: var(--color-income); border-radius: 50%; align-self: center; margin-right: 4px; box-shadow: 0 0 8px var(--color-income);"></span>
+            Online: ${names}
+          `;
+        } else {
+          presenceEl.style.display = "none";
+        }
+      }
+    );
   }
 }
 
