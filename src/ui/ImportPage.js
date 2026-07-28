@@ -109,7 +109,7 @@ class ImportPage {
         const alreadyMatchedDuplicate = [];
 
         importState.transactions.forEach(row => {
-          const accExists = app.accounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+          const accExists = app.allAccounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
           const catExists = app.categories.some(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
           const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(row.amount));
           const amountClass = row.amount > 0 ? 'amount-in' : 'amount-out';
@@ -128,7 +128,7 @@ class ImportPage {
 
           // Strict monthly candidates for manual dropdown link
           const rowMonth = row.date.substring(0, 7);
-          const rowAcc = app.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+          const rowAcc = app.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
           const monthPlannedTxs = app.getActiveTransactions().filter(t => {
             if (t.status !== 'planned') return false;
             if (rowAcc && t.account_id !== rowAcc.id) return false;

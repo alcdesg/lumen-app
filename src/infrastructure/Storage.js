@@ -823,4 +823,21 @@ class Storage {
       }
     }
   }
+
+  /**
+   * Triggers the atomic rollback of a CSV import batch on the database via RPC.
+   */
+  async rollbackImportBatch(batchId, email) {
+    if (!this.supabase || !this.isUsingSupabase) return;
+    
+    console.log(`Solicitando reversão do lote "${batchId}" pelo usuário "${email}" no Supabase...`);
+    const { error } = await this.supabase.rpc("rollback_import_batch", {
+      target_batch_id: batchId,
+      active_user_email: email
+    });
+    if (error) {
+      console.error("Erro na RPC de reversão:", error);
+      throw error;
+    }
+  }
 }

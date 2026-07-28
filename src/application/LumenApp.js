@@ -492,7 +492,7 @@ class LumenApp {
    * Matching criteria: same account, same category, date within +/- 5 days, amount within 20% tolerance, same status 'planned'.
    */
   findMatchingPlannedTransaction(row, alreadyMatchedPlannedIds = []) {
-    const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    const acc = this.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
     if (!acc) return null;
 
     const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
@@ -548,7 +548,7 @@ class LumenApp {
   }
 
   findMatchingDuplicateTransaction(row, todayStr, alreadyMatchedDuplicateIds = []) {
-    const acc = this.accounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    const acc = this.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
     if (!acc) return null;
 
     const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
@@ -651,7 +651,7 @@ class LumenApp {
 
     // Helper to find or create Account on the fly
     const getOrCreateAccount = (name) => {
-      let acc = this.accounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a.is_active);
+      let acc = this.allAccounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a.is_active);
       if (!acc) {
         acc = this.addAccount({ name, initial_balance: 0 });
       }
@@ -741,15 +741,22 @@ class LumenApp {
     if (!batch) throw new Error("Lote de importação não encontrado.");
     if (batch.status === 'rolled_back') throw new Error("Este lote de importação já foi revertido.");
 
-    // Roll back each transaction in the batch
+    // 1. Se estiver usando o Supabase Cloud, processa a reversão atômica via RPC no banco
+    if (this.storage.isUsingSupabase && this.storage.supabase) {
+      await this.storage.rollbackImportBatch(batchId, this.currentUserEmail);
+      // O Realtime atualizará o estado local automaticamente após a execução da RPC.
+      return;
+    }
+
+    // 2. Fallback local para modo offline (OneDrive / LocalStorage)
     batch.transaction_ids.forEach(txId => {
-      const activeTx = this.getActiveTransaction(txId);
+      // Obtém a versão ativa na base consolidada bruta (allTransactions)
+      const activeTx = this.allTransactions.find(t => t.id === txId && t.is_active);
       if (activeTx) {
-        // Check if there was a previous version of this transaction that was NOT created in this batch
-        const prevVersion = this.transactions.find(t => t.id === txId && t.version === activeTx.version - 1);
+        const prevVersion = this.allTransactions.find(t => t.id === txId && t.version === activeTx.version - 1);
         
         if (prevVersion && prevVersion.import_batch_id !== batchId) {
-          // Reactivate the previous planned version!
+          // Reativa a versão planejada anterior
           activeTx.is_active = false;
           activeTx.replaced_by_version = null;
           activeTx.updated_at = new Date().toISOString();
@@ -760,15 +767,36 @@ class LumenApp {
           prevVersion.updated_at = new Date().toISOString();
           prevVersion.created_by_user = this.currentUserEmail;
         } else {
-          // Soft-delete the imported transaction (create a deleted version)
+          // Soft-delete criando uma nova versão com is_deleted = true
           activeTx.is_active = false;
           activeTx.replaced_by_version = activeTx.version + 1;
           activeTx.updated_at = new Date().toISOString();
           activeTx.created_by_user = this.currentUserEmail;
 
-          const rollbackTx = activeTx.createNewVersion({ is_deleted: true, created_by_user: this.currentUserEmail });
-          rollbackTx.is_active = false; // Inactive
-          this.transactions.push(rollbackTx);
+          // Cria a versão deletada
+          const activeTxObj = new Transaction(activeTx);
+          const rollbackTx = activeTxObj.createNewVersion({ is_deleted: true, created_by_user: this.currentUserEmail });
+          rollbackTx.is_active = false; // Inativa
+          
+          this.allTransactions.push({
+            id: rollbackTx.id,
+            version: rollbackTx.version,
+            account_id: rollbackTx.account_id,
+            category_id: rollbackTx.category_id,
+            description: rollbackTx.description,
+            amount: rollbackTx.amount,
+            date: rollbackTx.date,
+            status: rollbackTx.status,
+            is_active: rollbackTx.is_active,
+            is_deleted: rollbackTx.is_deleted,
+            parent_id: rollbackTx.parent_id,
+            import_batch_id: rollbackTx.import_batch_id,
+            replaced_by_version: rollbackTx.replaced_by_version,
+            member: rollbackTx.member,
+            created_at: rollbackTx.created_at,
+            updated_at: rollbackTx.updated_at,
+            created_by_user: rollbackTx.created_by_user
+          });
         }
       }
     });
