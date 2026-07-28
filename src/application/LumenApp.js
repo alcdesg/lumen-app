@@ -58,8 +58,16 @@ class LumenApp {
       if (this.isAdmin()) return true;
       // Contas sem allowed_emails são conjuntas
       if (!a.allowed_emails || a.allowed_emails.length === 0) return true;
-      // Contas cujo e-mail do usuário ativo está na lista
-      return a.allowed_emails.map(e => e.toLowerCase().trim()).includes(email);
+      
+      const normalizedAllowed = a.allowed_emails.map(e => e.toLowerCase().trim());
+      // 1. Match exato de e-mail
+      if (normalizedAllowed.includes(email)) return true;
+
+      // 2. Fallback: extrair nome amigável do e-mail ativo (ex: paula de paula@lumen.com.br)
+      const friendlyName = email.split('@')[0];
+      if (normalizedAllowed.includes(friendlyName)) return true;
+
+      return false;
     });
 
     this.accounts = visibleAccounts.map(a => new Account(a));

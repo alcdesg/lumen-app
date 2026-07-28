@@ -204,7 +204,24 @@ class AccountsPage {
         const allowed_emails = [];
         checkboxes.forEach(cb => {
           if (cb.checked) {
-            allowed_emails.push(cb.value.toLowerCase().trim());
+            let val = cb.value.toLowerCase().trim();
+            // Resolve friendly names to actual emails if there's no domain
+            if (!val.includes('@')) {
+              const roles = Object.keys(app.settings.user_roles || {});
+              let found = false;
+              for (const email of roles) {
+                if (email.toLowerCase().includes(val)) {
+                  val = email;
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
+                if (val === 'paula') val = 'paula@lumen.com.br';
+                if (val === 'alcides') val = 'alcides@lumen.com.br';
+              }
+            }
+            allowed_emails.push(val);
           }
         });
 
