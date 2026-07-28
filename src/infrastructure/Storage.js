@@ -283,7 +283,8 @@ class Storage {
         const remember = localStorage.getItem("lumen_supabase_remember") === "true";
         const client = window.supabase.createClient(cleanUrl, savedKey, {
           auth: {
-            persistSession: remember
+            persistSession: true,
+            storage: remember ? localStorage : sessionStorage
           }
         });
         const { data: { session } } = await client.auth.getSession();
@@ -337,7 +338,8 @@ class Storage {
 
     const client = window.supabase.createClient(cleanUrl, anonKey, {
       auth: {
-        persistSession: remember
+        persistSession: true,
+        storage: remember ? localStorage : sessionStorage
       }
     });
     const { data, error } = await client.auth.signInWithPassword({ email, password });
@@ -781,7 +783,7 @@ class Storage {
     });
 
     this.presenceChannel
-      .on("sync", () => {
+      .on("presence", { event: "sync" }, () => {
         const state = this.presenceChannel.presenceState();
         const onlineUsers = [];
         Object.entries(state).forEach(([key, presences]) => {

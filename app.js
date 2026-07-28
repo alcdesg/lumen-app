@@ -475,6 +475,30 @@ class ApplicationController {
             alert("Erro ao deslogar: " + err.message);
           }
         }
+    // 1.9 Manual Sincronizar Button Click Handler
+    const syncBtn = document.getElementById('header-sync-btn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', async () => {
+        const icon = syncBtn.querySelector('.sync-icon');
+        if (icon) icon.classList.add('spinning');
+        syncBtn.setAttribute('disabled', 'true');
+
+        try {
+          // Busca o estado consolidado absoluto mais recente na nuvem Supabase
+          await this.app.init();
+          this.updateWelcomeText();
+          this.updateSyncUI();
+          this.renderActivePage(); // Re-renderiza a tela atualizada
+          console.log("Banco de dados sincronizado com sucesso sob demanda.");
+        } catch (err) {
+          alert("Não foi possível sincronizar com a nuvem: " + err.message);
+        } finally {
+          // Pequeno timeout sutil para a animação de rotação parecer fluida
+          setTimeout(() => {
+            if (icon) icon.classList.remove('spinning');
+            syncBtn.removeAttribute('disabled');
+          }, 600);
+        }
       });
     }
 

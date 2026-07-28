@@ -2193,4 +2193,13 @@ body.light-theme .mockup-header {
   }
 }
 
+/* Animação de rotação para o botão de sincronizar */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spinning {
+  animation: spin 1s linear infinite !important;
+}
+
 
