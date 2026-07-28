@@ -1,3 +1,13 @@
+function normalizeName(str) {
+  if (!str) return "";
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 class ImportPage {
   static render(app, state) {
     const today = new Date().toLocaleDateString('en-CA'); // Dynamic local date
@@ -109,8 +119,8 @@ class ImportPage {
         const alreadyMatchedDuplicate = [];
 
         importState.transactions.forEach(row => {
-          const accExists = app.allAccounts.some(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
-          const catExists = app.categories.some(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
+          const accExists = app.allAccounts.some(a => normalizeName(a.name) === normalizeName(row.accountName) && a.is_active);
+          const catExists = app.categories.some(c => normalizeName(c.name) === normalizeName(row.categoryName) && c.is_active);
           const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(row.amount));
           const amountClass = row.amount > 0 ? 'amount-in' : 'amount-out';
           const sign = row.amount > 0 ? '+' : '-';
@@ -128,7 +138,7 @@ class ImportPage {
 
           // Strict monthly candidates for manual dropdown link
           const rowMonth = row.date.substring(0, 7);
-          const rowAcc = app.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+          const rowAcc = app.allAccounts.find(a => normalizeName(a.name) === normalizeName(row.accountName) && a.is_active);
           const monthPlannedTxs = app.getActiveTransactions().filter(t => {
             if (t.status !== 'planned') return false;
             if (rowAcc && t.account_id !== rowAcc.id) return false;

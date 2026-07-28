@@ -1,3 +1,13 @@
+function normalizeName(str) {
+  if (!str) return "";
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
 class LumenApp {
   /**
    * @param {Storage} storage Storage manager instance
@@ -299,7 +309,9 @@ class LumenApp {
   // --- Account Management ---
 
   addAccount({ name, initial_balance, allowed_emails = [] }) {
-    const existing = this.accounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a.is_active);
+    const normName = normalizeName(name);
+    const existing = this.allAccounts.find(a => normalizeName(a.name) === normName && a.is_active) || 
+                     this.accounts.find(a => normalizeName(a.name) === normName && a.is_active);
     if (existing) {
       throw new Error(`Uma conta ativa com o nome "${name}" já existe.`);
     }
@@ -327,7 +339,8 @@ class LumenApp {
   // --- Category Management ---
 
   addCategory({ name, type }) {
-    const existing = this.categories.find(c => c.name.toLowerCase() === name.toLowerCase() && c.is_active);
+    const normName = normalizeName(name);
+    const existing = this.categories.find(c => normalizeName(c.name) === normName && c.is_active);
     if (existing) {
       throw new Error(`Uma categoria ativa com o nome "${name}" já existe.`);
     }
@@ -492,10 +505,10 @@ class LumenApp {
    * Matching criteria: same account, same category, date within +/- 5 days, amount within 20% tolerance, same status 'planned'.
    */
   findMatchingPlannedTransaction(row, alreadyMatchedPlannedIds = []) {
-    const acc = this.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    const acc = this.allAccounts.find(a => normalizeName(a.name) === normalizeName(row.accountName) && a.is_active);
     if (!acc) return null;
 
-    const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
+    const cat = this.categories.find(c => normalizeName(c.name) === normalizeName(row.categoryName) && c.is_active);
     if (!cat) return null;
 
     const rowAmount = Number(row.amount);
@@ -548,10 +561,10 @@ class LumenApp {
   }
 
   findMatchingDuplicateTransaction(row, todayStr, alreadyMatchedDuplicateIds = []) {
-    const acc = this.allAccounts.find(a => a.name.toLowerCase() === row.accountName.toLowerCase() && a.is_active);
+    const acc = this.allAccounts.find(a => normalizeName(a.name) === normalizeName(row.accountName) && a.is_active);
     if (!acc) return null;
 
-    const cat = this.categories.find(c => c.name.toLowerCase() === row.categoryName.toLowerCase() && c.is_active);
+    const cat = this.categories.find(c => normalizeName(c.name) === normalizeName(row.categoryName) && c.is_active);
     if (!cat) return null;
 
     const rowAmount = Number(row.amount);
@@ -651,7 +664,11 @@ class LumenApp {
 
     // Helper to find or create Account on the fly
     const getOrCreateAccount = (name) => {
-      let acc = this.allAccounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a.is_active);
+      const normName = normalizeName(name);
+      let acc = this.allAccounts.find(a => normalizeName(a.name) === normName && a.is_active);
+      if (!acc) {
+        acc = this.accounts.find(a => normalizeName(a.name) === normName && a.is_active);
+      }
       if (!acc) {
         acc = this.addAccount({ name, initial_balance: 0 });
       }
@@ -660,7 +677,8 @@ class LumenApp {
 
     // Helper to find or create Category on the fly
     const getOrCreateCategory = (name, amount) => {
-      let cat = this.categories.find(c => c.name.toLowerCase() === name.toLowerCase() && c.is_active);
+      const normName = normalizeName(name);
+      let cat = this.categories.find(c => normalizeName(c.name) === normName && c.is_active);
       if (!cat) {
         const type = amount > 0 ? 'income' : 'expense';
         cat = this.addCategory({ name, type });
