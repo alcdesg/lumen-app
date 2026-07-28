@@ -475,6 +475,9 @@ class ApplicationController {
             alert("Erro ao deslogar: " + err.message);
           }
         }
+      });
+    }
+
     // 1.9 Manual Sincronizar Button Click Handler
     const syncBtn = document.getElementById('header-sync-btn');
     if (syncBtn) {
