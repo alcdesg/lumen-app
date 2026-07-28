@@ -28,7 +28,7 @@ class ApplicationController {
     };
 
     // Initialize Theme preference based on the active user settings
-    const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+    const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
     const savedTheme = localStorage.getItem(`lumen_theme_${activeUser}`) || localStorage.getItem("lumen_theme") || "dark";
     localStorage.setItem("lumen_theme", savedTheme);
     if (savedTheme === "light") {
@@ -81,9 +81,10 @@ class ApplicationController {
       const email = localStorage.getItem("lumen_supabase_email") || this.storage.currentUserEmail;
       if (email) {
         let activeUser = "Casal";
-        if (email.toLowerCase().trim() === 'neto_gurgel@hotmail.com') activeUser = "Alcides";
-        else if (email.toLowerCase().includes('paula')) activeUser = "Paula";
-        localStorage.setItem("lumen_active_user", activeUser);
+        const emailLower = email.toLowerCase().trim();
+        if (emailLower === 'neto_gurgel@hotmail.com' || emailLower === 'alcides@lumen.com.br') activeUser = "Alcides";
+        else if (emailLower.includes('paula')) activeUser = "Paula";
+        sessionStorage.setItem("lumen_active_user", activeUser);
       }
     } else {
       setupScreen.classList.add('active');
@@ -106,13 +107,13 @@ class ApplicationController {
 
   selectUserInSetup(username) {
     // Stubbed out as user profile is now resolved dynamically via authenticated email
-    localStorage.setItem("lumen_active_user", username);
+    sessionStorage.setItem("lumen_active_user", username);
   }
 
   updateWelcomeText() {
     const welcomeEl = document.getElementById('header-user-welcome');
     if (welcomeEl) {
-      const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+      const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
       const roleText = this.app.userRole === 'admin' ? 'Administrador' : (this.app.userRole === 'editor' ? 'Editor' : 'Leitor');
       welcomeEl.textContent = `Olá, ${activeUser}! (${roleText})`;
     }
@@ -334,7 +335,7 @@ class ApplicationController {
         }
         
         // Default to Demo mode with guest role
-        localStorage.setItem("lumen_active_user", "Casal");
+        sessionStorage.setItem("lumen_active_user", "Casal");
         this.app.userRole = 'viewer';
         
         this.updateWelcomeText();
@@ -398,7 +399,7 @@ class ApplicationController {
           const emailLower = email.toLowerCase().trim();
           if (emailLower === 'neto_gurgel@hotmail.com' || emailLower === 'alcides@lumen.com.br') activeUser = "Alcides";
           else if (emailLower.includes('paula')) activeUser = "Paula";
-          localStorage.setItem("lumen_active_user", activeUser);
+          sessionStorage.setItem("lumen_active_user", activeUser);
 
           // Update header & pills
           this.updateWelcomeText();
@@ -578,7 +579,7 @@ class ApplicationController {
         document.body.classList.toggle('light-theme');
         const isLight = document.body.classList.contains('light-theme');
         const theme = isLight ? 'light' : 'dark';
-        const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+        const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
         localStorage.setItem('lumen_theme', theme);
         localStorage.setItem(`lumen_theme_${activeUser}`, theme);
         this.updateThemeUI();

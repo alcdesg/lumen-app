@@ -377,7 +377,7 @@ class Storage {
     localStorage.removeItem("lumen_supabase_key");
     localStorage.removeItem("lumen_supabase_email");
     localStorage.removeItem("lumen_supabase_remember");
-    localStorage.removeItem("lumen_active_user");
+    sessionStorage.removeItem("lumen_active_user");
 
     // Clear all financial data caches to prevent security leaks between sessions
     localStorage.removeItem("lumen_accounts");

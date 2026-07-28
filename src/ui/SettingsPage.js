@@ -1,7 +1,7 @@
 class SettingsPage {
   static render(app, state) {
     try {
-      const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+      const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
       
       // Load individual user theme preferences (defaulting to dark)
       const themePaula = localStorage.getItem("lumen_theme_Paula") || "dark";
@@ -335,7 +335,7 @@ class SettingsPage {
     userButtons.forEach(btn => {
       btn.addEventListener("click", (e) => {
         const selectedUser = e.currentTarget.getAttribute("data-user");
-        localStorage.setItem("lumen_active_user", selectedUser);
+        sessionStorage.setItem("lumen_active_user", selectedUser);
         
         // Load the chosen user's theme preference and apply it
         const theme = localStorage.getItem(`lumen_theme_${selectedUser}`) || "dark";
@@ -364,7 +364,7 @@ class SettingsPage {
         localStorage.setItem(`lumen_theme_${user}`, theme);
 
         // If the edited user is the currently active user, apply the theme immediately
-        const activeUser = localStorage.getItem("lumen_active_user") || "Casal";
+        const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
         if (user === activeUser) {
           localStorage.setItem("lumen_theme", theme);
           if (theme === "light") {
