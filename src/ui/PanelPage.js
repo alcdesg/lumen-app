@@ -20,7 +20,7 @@ class PanelPage {
     if (activeTxs.length === 0) {
       decisionHtml = `
         <div class="decision-statement">
-          <h3>Margem de Decisão</h3>
+          <h3>Margem de Decisão ${HelpHint.render('O menor saldo projetado para o casal nos próximos 30 dias. Mostra quanto vocês podem gastar hoje sem estourar as contas futuras.')}</h3>
           <h2 style="color: var(--text-secondary);">Aguardando Lançamentos</h2>
           <p>Nenhuma movimentação foi encontrada. Cadastre suas contas, categorias e transações no menu lateral para visualizar sua margem de decisão e projeções financeiras.</p>
         </div>
@@ -32,7 +32,7 @@ class PanelPage {
     } else if (kpis.decisionMargin > 0) {
       decisionHtml = `
         <div class="decision-statement">
-          <h3>Margem de Decisão</h3>
+          <h3>Margem de Decisão ${HelpHint.render('O menor saldo projetado para o casal nos próximos 30 dias. Mostra quanto vocês podem gastar hoje sem estourar as contas futuras.')}</h3>
           <h2 class="margin-positive">Sim, vocês podem gastar!</h2>
           <p>Vocês podem gastar até <strong>${formattedMargin}</strong> hoje sem que o saldo consolidado fique negativo nos próximos 30 dias.</p>
         </div>
@@ -44,7 +44,7 @@ class PanelPage {
     } else if (kpis.decisionMargin === 0) {
       decisionHtml = `
         <div class="decision-statement">
-          <h3>Margem de Decisão</h3>
+          <h3>Margem de Decisão ${HelpHint.render('O menor saldo projetado para o casal nos próximos 30 dias. Mostra quanto vocês podem gastar hoje sem estourar as contas futuras.')}</h3>
           <h2 style="color: var(--color-warning);">Caixa no limite!</h2>
           <p>Vocês não possuem margem de gastos hoje. Qualquer compra adicional pode comprometer os pagamentos futuros.</p>
         </div>
@@ -56,7 +56,7 @@ class PanelPage {
     } else {
       decisionHtml = `
         <div class="decision-statement">
-          <h3>Margem de Decisão</h3>
+          <h3>Margem de Decisão ${HelpHint.render('O menor saldo projetado para o casal nos próximos 30 dias. Mostra quanto vocês podem gastar hoje sem estourar as contas futuras.')}</h3>
           <h2 class="margin-negative">Atenção! Caixa negativo projetado</h2>
           <p>Evitem gastos não essenciais. O saldo do casal ficará negativo em <strong>${formattedMargin}</strong> no dia ${kpis.lowestBalanceDate.split('-').reverse().join('/')}.</p>
         </div>
@@ -397,19 +397,19 @@ class PanelPage {
         <!-- KPIs row -->
         <div class="kpis-row">
           <div class="kpi-card">
-            <div class="kpi-label">Caixa Hoje</div>
+            <div class="kpi-label">Caixa Hoje ${HelpHint.render('A soma total do dinheiro disponível hoje em todas as suas contas ativas.', 'right')}</div>
             <div class="kpi-value ${kpis.cashToday >= 0 ? '' : 'amount-out'}">${formattedToday}</div>
             <div class="kpi-subtext">Saldo consolidado atual</div>
           </div>
           
           <div class="kpi-card">
-            <div class="kpi-label">Caixa Futuro</div>
+            <div class="kpi-label">Caixa Futuro ${HelpHint.render('O saldo planejado final para os próximos 30 dias, considerando as receitas e despesas planejadas no período.', 'right')}</div>
             <div class="kpi-value ${kpis.cashFuture >= 0 ? '' : 'amount-out'}">${formattedFuture}</div>
             <div class="kpi-subtext">Saldo projetado em 30 dias</div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-label">Menor Saldo Projetado</div>
+            <div class="kpi-label">Menor Saldo ${HelpHint.render('O menor valor projetado para o caixa nos próximos 30 dias.', 'left')}</div>
             <div class="kpi-value ${kpis.lowestBalance >= 0 ? '' : 'amount-out'}">${formattedLowest}</div>
             <div class="kpi-subtext">No dia ${kpis.lowestBalanceDate.split('-').reverse().join('/')}</div>
           </div>

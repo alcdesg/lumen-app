@@ -259,22 +259,22 @@
         </div>
         
         <div class="form-row">
-          <label for="tx-amount">Valor (R$)* <span class="help-tooltip" title="Valor numérico da transação em reais. Não precisa digitar o sinal de menos para despesas.">ⓘ</span></label>
+          <label for="tx-amount">Valor (R$)* <span class="help-hint tooltip-top" data-tooltip="Digite o valor numérico da transação (despesas não precisam de sinal de menos)."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
           <input type="number" id="tx-amount" step="0.01" placeholder="0,00" required autofocus autocomplete="off">
         </div>
 
         <div class="form-row">
-          <label for="tx-description">Descrição* <span class="help-tooltip" title="Breve identificação da movimentação (ex: 'Supermercado Semanal', 'Combustível', 'Salário').">ⓘ</span></label>
+          <label for="tx-description">Descrição* <span class="help-hint tooltip-top" data-tooltip="Breve identificação do lançamento (ex: 'Supermercado', 'Energia', 'Salário')."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
           <input type="text" id="tx-description" placeholder="Ex: Supermercado Semanal" required autocomplete="off">
         </div>
 
         <div class="form-grid">
           <div class="form-row">
-            <label for="tx-date">Data* <span class="help-tooltip" title="A data em que a movimentação ocorreu ou está planejada para acontecer.">ⓘ</span></label>
+            <label for="tx-date">Data* <span class="help-hint tooltip-top" data-tooltip="A data em que o lançamento ocorreu ou está previsto para acontecer."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
             <input type="date" id="tx-date" required>
           </div>
           <div class="form-row">
-            <label for="tx-status">Status* <span class="help-tooltip" title="Realizado (dinheiro já debitado/creditado) ou Previsto (agendamento futuro).">ⓘ</span></label>
+            <label for="tx-status">Status* <span class="help-hint tooltip-top" data-tooltip="Use 'Confirmado' se já foi realizado, ou 'Planejado' para despesas/receitas previstas no futuro."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
             <select id="tx-status">
               <option value="confirmed">Confirmado (Realizado)</option>
               <option value="planned">Planejado (Previsto)</option>
@@ -284,14 +284,14 @@
 
         <div class="form-grid">
           <div class="form-row">
-            <label for="tx-account">Conta* <span class="help-tooltip" title="A conta ou caixinha bancária de onde sairá/entrará este valor.">ⓘ</span></label>
+            <label for="tx-account">Conta* <span class="help-hint tooltip-top" data-tooltip="A carteira ou caixinha bancária associada a este lançamento."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
             <div style="display: flex; gap: 8px;">
               <select id="tx-account" required style="flex: 1;"></select>
               <button type="button" id="quick-add-new-acc-btn" class="btn btn-secondary" style="padding: 0 10px; font-weight: bold; font-size: 16px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" title="Criar Nova Conta na hora">+</button>
             </div>
           </div>
           <div class="form-row">
-            <label for="tx-category">Categoria* <span class="help-tooltip" title="Classifique a movimentação para otimizar os relatórios e projeções de fluxo.">ⓘ</span></label>
+            <label for="tx-category">Categoria* <span class="help-hint tooltip-top" data-tooltip="Classificação do lançamento para organizar seus relatórios e filtros."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
             <div style="display: flex; gap: 8px;">
               <select id="tx-category" required style="flex: 1;"></select>
               <button type="button" id="quick-add-new-cat-btn" class="btn btn-secondary" style="padding: 0 10px; font-weight: bold; font-size: 16px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;" title="Criar Nova Categoria na hora">+</button>
@@ -300,7 +300,7 @@
         </div>
 
         <div class="form-row">
-          <label for="tx-member">Membro Responsável* <span class="help-tooltip" title="Quem realizou ou é o responsável por este lançamento.">ⓘ</span></label>
+          <label for="tx-member">Membro Responsável* <span class="help-hint tooltip-top" data-tooltip="Quem realizou ou é o responsável por este lançamento (Paula, Alcides ou Casal)."><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="help-hint-icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span></label>
           <select id="tx-member" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: var(--border-radius-md); font-family: inherit; font-size: 13px;">
             <option value="Casal">Casal (Compartilhado)</option>
             <option value="Paula">Paula</option>
@@ -353,19 +353,20 @@
   <script src="src/domain/Account.js"></script>
   <script src="src/domain/Category.js"></script>
   <script src="src/domain/Transaction.js"></script>
-  <script src="src/infrastructure/Storage.js?v=1.1.4"></script>
+  <script src="src/infrastructure/Storage.js?v=1.1.5"></script>
   <script src="src/infrastructure/CsvParser.js"></script>
-  <script src="src/application/LumenApp.js?v=1.1.4"></script>
-  <script src="src/ui/PanelPage.js"></script>
-  <script src="src/ui/CalendarPage.js"></script>
-  <script src="src/ui/TransactionsPage.js"></script>
-  <script src="src/ui/TasksPage.js"></script>
-  <script src="src/ui/AiPage.js?v=1.0.3"></script>
-  <script src="src/ui/AccountsPage.js"></script>
-  <script src="src/ui/ImportPage.js?v=1.1.4"></script>
-  <script src="src/ui/HistoryPage.js"></script>
-  <script src="src/ui/HelpPage.js"></script>
-  <script src="src/ui/SettingsPage.js?v=1.1.4"></script>
-  <script src="app.js?v=1.1.4"></script>
+  <script src="src/application/LumenApp.js?v=1.1.5"></script>
+  <script src="src/ui/components/HelpHint.js?v=1.1.5"></script>
+  <script src="src/ui/PanelPage.js?v=1.1.5"></script>
+  <script src="src/ui/CalendarPage.js?v=1.1.5"></script>
+  <script src="src/ui/TransactionsPage.js?v=1.1.5"></script>
+  <script src="src/ui/TasksPage.js?v=1.1.5"></script>
+  <script src="src/ui/AiPage.js?v=1.1.5"></script>
+  <script src="src/ui/AccountsPage.js?v=1.1.5"></script>
+  <script src="src/ui/ImportPage.js?v=1.1.5"></script>
+  <script src="src/ui/HistoryPage.js?v=1.1.5"></script>
+  <script src="src/ui/HelpPage.js?v=1.1.5"></script>
+  <script src="src/ui/SettingsPage.js?v=1.1.5"></script>
+  <script src="app.js?v=1.1.5"></script>
 </body>
 </html>

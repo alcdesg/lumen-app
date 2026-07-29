@@ -85,7 +85,7 @@ class AccountsPage {
               <input type="number" id="acc-new-balance" placeholder="0,00" step="0.01" required autocomplete="off">
             </div>
             <div class="form-row">
-              <label>Quem pode visualizar e editar esta conta?</label>
+              <label>Quem pode visualizar e editar esta conta? ${HelpHint.render('Marque os usuários permitidos. Contas sem nenhum e-mail marcado são compartilhadas automaticamente com ambos.', 'top')}</label>
               <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 6px;">
                 ${(() => {
                   const registeredEmails = Object.keys(app.settings.user_roles || {});

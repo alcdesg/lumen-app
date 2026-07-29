@@ -97,7 +97,7 @@ class HistoryPage {
     return `
       <div class="section-card animate-fade-in" style="max-width: 900px; margin: 0 auto;">
         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 24px;">
-          Histórico de Auditoria & Versionamento
+          Histórico de Auditoria & Versionamento ${HelpHint.render('Registra todas as edições e exclusões de transações. Garante rastreabilidade total das movimentações financeiras do casal.', 'top')}
         </h3>
         <p style="color: var(--text-muted); font-size: 13px; margin-top: -16px; margin-bottom: 24px;">
           Toda alteração de lançamentos gera uma nova versão para manter a integridade histórica dos saldos projetados. 

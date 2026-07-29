@@ -168,7 +168,7 @@ class TasksPage {
         <div class="section-card" style="padding: 20px 24px;">
           <h4 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 12px; font-weight: 700; display:flex; align-items:center; gap:8px;">
             <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:var(--color-expense);"></span>
-            Pendências Requerendo Ação
+            Pendências Requerendo Ação ${HelpHint.render('Lançamentos planejados que já venceram. Confirme-os se o dinheiro já saiu/entrou, ou adie para atualizar a projeção.', 'top')}
           </h4>
           <div class="table-card" style="border: none; background: transparent; padding: 0; box-shadow: none;">
             <div class="data-table-wrapper">
@@ -197,7 +197,7 @@ class TasksPage {
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
             <h4 style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; display:flex; align-items:center; gap:8px; margin: 0;">
               <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:var(--color-income);"></span>
-              Previsões de Fluxo Futuro (YTG)
+              Previsões de Fluxo Futuro (YTG) ${HelpHint.render('Suas receitas e despesas planejadas para os próximos meses. Ajudam a prever o caixa e calcular a Margem de Decisão do casal.', 'top')}
             </h4>
             <div style="display: flex; align-items: center; gap: 8px;">
               <label for="future-month-filter" style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Filtrar Mês:</label>

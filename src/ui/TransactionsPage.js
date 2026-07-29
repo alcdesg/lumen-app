@@ -317,7 +317,7 @@ class TransactionsPage {
                 <input type="date" id="edit-tx-date" required>
               </div>
               <div class="form-row">
-                <label for="edit-tx-status">Status*</label>
+                <label for="edit-tx-status">Status* ${HelpHint.render('Marque \'Confirmado\' se já foi pago/recebido, ou \'Planejado\' para previsões futuras.', 'top')}</label>
                 <select id="edit-tx-status">
                   <option value="confirmed">Confirmado (Realizado)</option>
                   <option value="planned">Planejado (Previsto)</option>
@@ -340,7 +340,7 @@ class TransactionsPage {
             </div>
 
             <div class="form-row">
-              <label for="edit-tx-member">Membro Responsável*</label>
+              <label for="edit-tx-member">Membro Responsável* ${HelpHint.render('Quem realizou ou é o responsável por este lançamento (Paula, Alcides ou Casal).', 'top')}</label>
               <select id="edit-tx-member" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: var(--border-radius-md); font-family: inherit; font-size: 13px;">
                 <option value="Casal">Casal (Compartilhado)</option>
                 <option value="Paula">Paula</option>

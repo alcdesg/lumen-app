@@ -639,8 +639,20 @@ class ApplicationController {
             accSelect.value = acc.id;
           }
         }
-      });
-    }
+    // 3. Suporte a toque no celular para Tooltips contextuais (.help-hint)
+    document.addEventListener('click', (e) => {
+      const hint = e.target.closest('.help-hint');
+      if (hint) {
+        hint.classList.toggle('active');
+        // Fecha as outras tooltips ativas
+        document.querySelectorAll('.help-hint').forEach(h => {
+          if (h !== hint) h.classList.remove('active');
+        });
+      } else {
+        // Clicou fora, fecha todas
+        document.querySelectorAll('.help-hint').forEach(h => h.classList.remove('active'));
+      }
+    });
   }
 
   /**

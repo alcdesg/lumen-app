@@ -263,7 +263,7 @@ class ImportPage {
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th style="width: 70px; text-align: center;">Conciliar</th>
+                    <th style="width: 70px; text-align: center;">Conciliar ${HelpHint.render('Marque para associar este lançamento a um planejado ou desmarcar para pular registros duplicados.', 'top')}</th>
                     <th style="width: 50px;">Linha</th>
                     <th style="width: 100px;">Data</th>
                     <th>Descrição</th>
@@ -336,7 +336,7 @@ class ImportPage {
 
         <!-- Import History Table -->
         <div class="section-card">
-          <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">Lotes de Importação</h3>
+          <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">Lotes de Importação ${HelpHint.render('Histórico de planilhas importadas. Você pode reverter qualquer lote para excluir suas transações e restaurar as previstas originais.', 'top')}</h3>
           <div class="data-table-wrapper">
             <table class="data-table">
               <thead>

@@ -2202,4 +2202,158 @@ body.light-theme .mockup-header {
   animation: spin 1s linear infinite !important;
 }
 
+/* ====================================================================
+   HELP SYSTEM TOOLTIPS (v1.1.5)
+   ==================================================================== */
+.help-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-left: 6px;
+  position: relative;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.help-hint-icon {
+  width: 13px;
+  height: 13px;
+  opacity: 0.65;
+  transition: all 0.2s ease;
+}
+
+.help-hint:hover, .help-hint.active {
+  color: var(--accent-primary);
+}
+
+.help-hint:hover .help-hint-icon, .help-hint.active .help-hint-icon {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px var(--accent-primary-glow));
+}
+
+/* Tooltip Balloon (Base top placement) */
+.help-hint::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translate(-50%, 8px) scale(0.95);
+  width: 220px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  border-radius: var(--border-radius-md);
+  text-align: left;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+  font-family: 'Inter', sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Arrow Pointer (Base top placement) */
+.help-hint::before {
+  content: "";
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: rgba(15, 23, 42, 0.94) transparent;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+}
+
+/* Hover & Active triggers */
+.help-hint:hover::after, .help-hint.active::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.help-hint:hover::before, .help-hint.active::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* --- Posicionamento: BOTTOM --- */
+.help-hint.tooltip-bottom::after {
+  bottom: auto;
+  top: 150%;
+  transform: translate(-50%, -8px) scale(0.95);
+}
+.help-hint.tooltip-bottom::before {
+  bottom: auto;
+  top: 125%;
+  transform: translateX(-50%) translateY(-4px);
+  border-width: 0 6px 6px;
+  border-color: rgba(15, 23, 42, 0.94) transparent;
+}
+.help-hint.tooltip-bottom:hover::after, .help-hint.tooltip-bottom.active::after {
+  transform: translate(-50%, 0) scale(1);
+}
+.help-hint.tooltip-bottom:hover::before, .help-hint.tooltip-bottom.active::before {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* --- Posicionamento: LEFT --- */
+.help-hint.tooltip-left::after {
+  bottom: 50%;
+  left: auto;
+  right: 150%;
+  transform: translate(8px, 50%) scale(0.95);
+}
+.help-hint.tooltip-left::before {
+  bottom: 50%;
+  left: auto;
+  right: 125%;
+  transform: translate(4px, 50%);
+  border-width: 6px 0 6px 6px;
+  border-color: transparent rgba(15, 23, 42, 0.94);
+}
+.help-hint.tooltip-left:hover::after, .help-hint.tooltip-left.active::after {
+  transform: translate(0, 50%) scale(1);
+}
+.help-hint.tooltip-left:hover::before, .help-hint.tooltip-left.active::before {
+  transform: translate(0, 50%);
+}
+
+/* --- Posicionamento: RIGHT --- */
+.help-hint.tooltip-right::after {
+  bottom: 50%;
+  left: 150%;
+  transform: translate(-8px, 50%) scale(0.95);
+}
+.help-hint.tooltip-right::before {
+  bottom: 50%;
+  left: 125%;
+  transform: translate(-4px, 50%);
+  border-width: 6px 6px 6px 0;
+  border-color: transparent rgba(15, 23, 42, 0.94);
+}
+.help-hint.tooltip-right:hover::after, .help-hint.tooltip-right.active::after {
+  transform: translate(0, 50%) scale(1);
+}
+.help-hint.tooltip-right:hover::before, .help-hint.tooltip-right.active::before {
+  transform: translate(0, 50%);
+}
+
+
 

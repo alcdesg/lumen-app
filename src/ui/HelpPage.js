@@ -7,7 +7,7 @@ class HelpPage {
         <div class="section-card" style="background: radial-gradient(100% 100% at 0% 0%, hsla(250, 84%, 67%, 0.1) 0%, rgba(15, 23, 42, 0) 100%);">
           <h2 style="font-size:24px; margin-bottom: 8px;">Guia de Uso do Lumen</h2>
           <p style="color:var(--text-secondary); font-size:14px; line-height:1.5;">
-            Bem-vindos, <strong>Paula & Alcides</strong>! Este guia foi feito para ajudar vocês a entenderem os conceitos do Lumen e guia-los no processo de transição para o uso real do aplicativo.
+            Bem-vindos ao Lumen! Este guia ajuda a entender a metodologia de projeções financeiras do aplicativo e as tecnologias que garantem a sincronização simultânea do casal.
           </p>
         </div>
 
@@ -17,48 +17,47 @@ class HelpPage {
           <div class="section-card">
             <h3 style="font-size:15px; color: var(--accent-secondary); margin-bottom: 12px; border:none; padding:0;">1. O que é a Margem de Decisão?</h3>
             <p style="font-size:13px; color: var(--text-secondary); line-height:1.6;">
-              Diferente de dashboards tradicionais, o Lumen calcula a sua <strong>Margem de Decisão</strong>. Ela é definida como o <strong>menor saldo projetado do casal nos próximos 30 dias</strong>.
+              Diferente de sistemas de gastos passados, o Lumen calcula a sua <strong>Margem de Decisão</strong>. Ela é definida como o <strong>menor saldo projetado do casal nos próximos 30 dias</strong>.
               <br><br>
-              • <strong>Margem Positiva (Verde)</strong>: Vocês podem gastar até esse valor hoje, pois o saldo futuro nunca ficará negativo.
+              • <strong>Margem Positiva (Verde)</strong>: Vocês podem gastar ou poupar até esse valor hoje, sabendo que as contas futuras não ficarão negativas.
               <br>
-              • <strong>Margem Negativa (Vermelha)</strong>: O caixa vai estourar nos próximos dias. Evitem compras supérfluas.
+              • <strong>Margem Negativa (Vermelha)</strong>: O caixa vai estourar nos próximos dias. Evitem gastos não essenciais.
             </p>
           </div>
 
           <div class="section-card">
             <h3 style="font-size:15px; color: var(--accent-primary); margin-bottom: 12px; border:none; padding:0;">2. Planejado vs. Confirmado</h3>
             <p style="font-size:13px; color: var(--text-secondary); line-height:1.6;">
-              O segredo da projeção é registrar as despesas e receitas futuras com o status de <strong>Planejado</strong> (Ex: Aluguel no dia 10, Energia no dia 25, Salários).
+              O segredo do planejamento é lançar receitas e despesas futuras com o status de <strong>Planejado</strong> (salários, aluguel, energia, faturas).
               <br><br>
-              À medida que as contas forem pagas ou os salários recebidos, editem o lançamento e alterem o status para <strong>Confirmado</strong>. Isso garante projeções de saldo 100% corretas no Calendário.
+              À medida que as contas forem pagas ou os valores recebidos, alterem o status para <strong>Confirmado</strong>. Isso garante que a linha de projeção no calendário seja sempre realista e livre de distorções.
             </p>
           </div>
 
         </div>
 
-        <!-- OneDrive + History Details -->
+        <!-- Supabase + History Details -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
           
           <div class="section-card">
-            <h3 style="font-size:15px; color: var(--color-income); margin-bottom: 12px; border:none; padding:0;">3. Como funciona a pasta do OneDrive?</h3>
+            <h3 style="font-size:15px; color: var(--color-income); margin-bottom: 12px; border:none; padding:0;">3. Colaboração Real-Time & Nuvem</h3>
             <p style="font-size:13px; color: var(--text-secondary); line-height:1.6;">
-              Por padrão, o Lumen salva os dados no navegador (LocalStorage). Ao clicar em <strong>"Conectar"</strong> no canto inferior esquerdo e escolher a sua pasta de OneDrive:
+              O Lumen utiliza o <strong>Supabase Cloud</strong> como fonte única de verdade.
               <br><br>
-              • O Lumen grava e lê arquivos JSON diretamente em seu computador.
+              • <strong>Atualização Sem Refresh</strong>: Lançamentos criados ou alterados por um membro aparecem instantaneamente na tela do outro.
               <br>
-              • O OneDrive cuida do backup e sincronização em nuvem automaticamente.
+              • <strong>Indicador Online</strong>: A bolinha verde no topo mostra se ambos estão mexendo no sistema no mesmo momento.
               <br>
-              • Vocês podem abrir o mesmo arquivo HTML em outro computador e conectar à mesma pasta para ver os mesmos dados!
+              • <strong>Isolamento de Sessão</strong>: O login é isolado por aba do navegador, permitindo múltiplos acessos e testes.
             </p>
           </div>
 
           <div class="section-card">
-            <h3 style="font-size:15px; color: var(--color-expense); margin-bottom: 12px; border:none; padding:0;">4. Por que minhas edições geram histórico?</h3>
+            <h3 style="font-size:15px; color: var(--color-expense); margin-bottom: 12px; border:none; padding:0;">4. Versionamento de Transações</h3>
             <p style="font-size:13px; color: var(--text-secondary); line-height:1.6;">
-              No Lumen, <strong>dados históricos nunca são perdidos ou sobrescritos</strong>. 
-              Toda vez que uma transação é editada ou excluída, o sistema arquiva a versão antiga como inativa e insere uma nova versão atualizada.
+              Para garantir a rastreabilidade financeira do casal, <strong>nenhuma edição ou exclusão apaga dados anteriores</strong>.
               <br><br>
-              Isso garante que vocês possam auditar a evolução dos seus lançamentos na aba **Auditoria & Versões**, impedindo erros de digitação acidentais.
+              Toda vez que vocês modificam um lançamento, a versão antiga é marcada como inativa e uma nova versão atualizada é salva. Vocês podem auditar toda essa trilha cronológica de edições na aba <strong>Auditoria & Versões</strong>.
             </p>
           </div>
 
@@ -75,42 +74,32 @@ class HelpPage {
             <div style="display:flex; gap:12px;">
               <span style="font-weight:700; color:var(--accent-primary); font-size:15px;">Passo 1:</span>
               <div>
-                <strong>Apagar os dados de demonstração (Demo Data)</strong><br>
-                Navegue até a página de <strong>Contas & Categorias</strong>. Role até o rodapé e clique no botão vermelho <strong>"Resetar Banco de Dados"</strong>. Isso limpará todas as movimentações e categorias de teste, deixando a base pronta.
+                <strong>Acessar o Ambiente Nuvem do Casal</strong><br>
+                Utilizem suas credenciais do Supabase para logar. Se o app estiver em "Modo de Demonstração" (Guest), naveguem em Configurações -> Zona de Perigo para conectar e sincronizar sua base definitiva.
               </div>
             </div>
 
             <div style="display:flex; gap:12px;">
               <span style="font-weight:700; color:var(--accent-primary); font-size:15px;">Passo 2:</span>
               <div>
-                <strong>Conectar ao OneDrive local</strong><br>
-                Clique no botão <strong>"Conectar"</strong> no rodapé da barra lateral e selecione o diretório do projeto no seu OneDrive: <br>
-                <code style="background-color:var(--bg-base); padding:2px 6px; border-radius:4px; font-size:11px;">C:\\Users\\117451\\OneDrive - paguemenos.com.br\\Lumen - Personal Controller Financial</code><br>
-                Conceda a permissão ao navegador.
+                <strong>Cadastrar as Contas e Saldos Iniciais</strong><br>
+                Em <strong>Contas & Categorias</strong>, criem as carteiras ou caixas de destino (ex: Conta Itaú, Carteira Dinheiro, Reserva de Emergência) e digitem o saldo atual de hoje para cada uma.
               </div>
             </div>
 
             <div style="display:flex; gap:12px;">
               <span style="font-weight:700; color:var(--accent-primary); font-size:15px;">Passo 3:</span>
               <div>
-                <strong>Cadastrar as Contas e Saldos Iniciais</strong><br>
-                Em <strong>Contas & Categorias</strong>, crie as suas contas (Ex: Conta Corrente Itaú, Reserva Nubank, Dinheiro Físico) digitando os seus saldos reais de hoje.
+                <strong>Cadastrar Categorias Homogeneizadas</strong><br>
+                Naveguem na mesma página e insiram categorias (ex: Alimentação, Habitação, Lazer). Lembrem-se que o Lumen unifica automaticamente acentos e caixa alta/baixa para evitar duplicados.
               </div>
             </div>
 
             <div style="display:flex; gap:12px;">
               <span style="font-weight:700; color:var(--accent-primary); font-size:15px;">Passo 4:</span>
               <div>
-                <strong>Cadastrar as Categorias</strong><br>
-                Crie as categorias que fizerem sentido para vocês (Ex: Aluguel, Supermercado, Lazer, Uber).
-              </div>
-            </div>
-
-            <div style="display:flex; gap:12px;">
-              <span style="font-weight:700; color:var(--accent-primary); font-size:15px;">Passo 5:</span>
-              <div>
-                <strong>Lançar as Receitas e Despesas Futuras</strong><br>
-                Clique em <strong>"Nova Movimentação"</strong> e insira todas as suas entradas e saídas recorrentes futuras como <strong>"Planejado"</strong>. O calendário e o painel de decisões se atualizarão instantaneamente, dando a vocês uma visão precisa do fluxo de caixa do casal!
+                <strong>Lançar Receitas e Despesas Previstas</strong><br>
+                Adicionem suas despesas e receitas mensais futuras como <strong>Planejado</strong>. Conforme os pagamentos ocorrerem, marquem como <strong>Confirmado</strong>. A Margem de Decisão do casal será calculada automaticamente!
               </div>
             </div>
 
