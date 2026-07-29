@@ -639,6 +639,9 @@ class ApplicationController {
             accSelect.value = acc.id;
           }
         }
+      });
+    }
+
     // 3. Suporte a toque no celular para Tooltips contextuais (.help-hint)
     document.addEventListener('click', (e) => {
       const hint = e.target.closest('.help-hint');
