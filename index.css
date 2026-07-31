@@ -2355,5 +2355,80 @@ body.light-theme .mockup-header {
   transform: translate(0, 50%);
 }
 
+/* ====================================================================
+   CALENDAR MULTIGRANULAR VIEWS (v1.1.6)
+   ==================================================================== */
+.calendar-months-grid, .calendar-years-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.calendar-month-card, .calendar-year-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 100px;
+}
+
+.calendar-month-card:hover, .calendar-year-card:hover {
+  border-color: var(--accent-primary);
+  background: rgba(110, 68, 255, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.calendar-month-card.active-month, .calendar-year-card.active-year {
+  border-color: var(--accent-primary);
+  background: rgba(110, 68, 255, 0.1);
+  box-shadow: 0 0 10px var(--accent-primary-glow);
+}
+
+.calendar-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: capitalize;
+}
+
+.calendar-card-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  width: 100%;
+}
+
+.calendar-summary-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.calendar-summary-net {
+  font-weight: 700;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .calendar-months-grid, .calendar-years-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+
 
 

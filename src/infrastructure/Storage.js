@@ -250,6 +250,7 @@ class Storage {
     
     // Fila sequencial (Mutex Promise Queue) para evitar gravação concorrente no Supabase
     this.writeQueue = Promise.resolve();
+    this.lastSaveTime = 0;
   }
 
   /**
@@ -614,6 +615,7 @@ class Storage {
    * Saves all relational data tables.
    */
   async saveData({ accounts, categories, transactions, batches, settings }) {
+    this.lastSaveTime = Date.now();
     const data = { accounts, categories, transactions, batches, settings };
 
     // Fila sequencial (Mutex) para garantir que apenas um salvamento ocorra por vez de forma ordenada
@@ -830,6 +832,7 @@ class Storage {
   async rollbackImportBatch(batchId, email) {
     if (!this.supabase || !this.isUsingSupabase) return;
     
+    this.lastSaveTime = Date.now();
     console.log(`Solicitando reversão do lote "${batchId}" pelo usuário "${email}" no Supabase...`);
     const { error } = await this.supabase.rpc("rollback_import_batch", {
       target_batch_id: batchId,

@@ -36,6 +36,7 @@ class ApplicationController {
     } else {
       document.body.classList.remove("light-theme");
     }
+    this.syncTimeout = null;
   }
 
   async start() {
@@ -116,6 +117,59 @@ class ApplicationController {
       const activeUser = sessionStorage.getItem("lumen_active_user") || "Casal";
       const roleText = this.app.userRole === 'admin' ? 'Administrador' : (this.app.userRole === 'editor' ? 'Editor' : 'Leitor');
       welcomeEl.textContent = `Olá, ${activeUser}! (${roleText})`;
+    }
+  }
+
+  // Helper to check if user is actively editing a form or typing in an input
+  isUserInteracting() {
+    // 1. Is any modal overlay active?
+    if (document.querySelector('.modal-overlay.active')) return true;
+    
+    // 2. Is any input, select or textarea currently focused?
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA')) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Unified database synchronization handler with loading states and focus shields
+  async performDatabaseSync(forceRender = false) {
+    const syncBtn = document.getElementById('header-sync-btn');
+    let icon = null;
+    let originalTitle = "";
+    if (syncBtn) {
+      icon = syncBtn.querySelector('.sync-icon');
+      if (icon) icon.classList.add('spinning');
+      syncBtn.setAttribute('disabled', 'true');
+      originalTitle = syncBtn.getAttribute('title') || "Sincronizar Banco de Dados";
+      syncBtn.setAttribute('title', 'Sincronizando alterações...');
+    }
+
+    try {
+      console.log("Iniciando sincronização de dados...");
+      await this.app.init();
+      this.updateWelcomeText();
+      this.updateSyncUI();
+      this.updateTasksBadge();
+      
+      // Delay re-render if user is currently interacting, unless forced manually
+      if (forceRender || !this.isUserInteracting()) {
+        this.renderActivePage();
+      } else {
+        console.log("Sincronização em segundo plano concluída. Atualização visual adiada para preservar o foco e o estado do formulário.");
+      }
+    } catch (err) {
+      console.error("Falha ao sincronizar banco de dados:", err);
+    } finally {
+      if (syncBtn) {
+        setTimeout(() => {
+          if (icon) icon.classList.remove('spinning');
+          syncBtn.removeAttribute('disabled');
+          syncBtn.setAttribute('title', originalTitle);
+        }, 600); // 600ms minimum rotation animation
+      }
     }
   }
 
@@ -482,28 +536,7 @@ class ApplicationController {
     // 1.9 Manual Sincronizar Button Click Handler
     const syncBtn = document.getElementById('header-sync-btn');
     if (syncBtn) {
-      syncBtn.addEventListener('click', async () => {
-        const icon = syncBtn.querySelector('.sync-icon');
-        if (icon) icon.classList.add('spinning');
-        syncBtn.setAttribute('disabled', 'true');
-
-        try {
-          // Busca o estado consolidado absoluto mais recente na nuvem Supabase
-          await this.app.init();
-          this.updateWelcomeText();
-          this.updateSyncUI();
-          this.renderActivePage(); // Re-renderiza a tela atualizada
-          console.log("Banco de dados sincronizado com sucesso sob demanda.");
-        } catch (err) {
-          alert("Não foi possível sincronizar com a nuvem: " + err.message);
-        } finally {
-          // Pequeno timeout sutil para a animação de rotação parecer fluida
-          setTimeout(() => {
-            if (icon) icon.classList.remove('spinning');
-            syncBtn.removeAttribute('disabled');
-          }, 600);
-        }
-      });
+      syncBtn.addEventListener('click', () => this.performDatabaseSync(true));
     }
 
     // 2. Quick Add Modal triggers
@@ -767,15 +800,17 @@ class ApplicationController {
     this.storage.setupRealtimeSync(
       // 1. Mudanças de Banco em Tempo Real (Realtime)
       async (payload) => {
-        console.log("App: Atualização detectada no Supabase. Sincronizando views...");
-        try {
-          await this.app.init(); // Recarrega do Supabase e refiltra as views em memória
-          this.updateWelcomeText();
-          this.updateSyncUI();
-          this.renderActivePage(); // Atualiza a tela atual em tempo real!
-        } catch (err) {
-          console.error("Falha ao re-sincronizar na escuta Realtime:", err);
+        // Ignora ecos de salvamentos locais imediatos do próprio usuário
+        if (Date.now() - this.storage.lastSaveTime < 1500) {
+          console.log("Realtime: Ignorando alteração gerada localmente pelo próprio usuário.");
+          return;
         }
+
+        console.log("App: Alteração externa detectada no Supabase. Agendando sincronização debouncing...");
+        if (this.syncTimeout) clearTimeout(this.syncTimeout);
+        this.syncTimeout = setTimeout(() => {
+          this.performDatabaseSync(false);
+        }, 300); // Janela de debounce de 300ms
       },
       // 2. Mudanças na lista de usuários online (Presence)
       (onlineUsers) => {
