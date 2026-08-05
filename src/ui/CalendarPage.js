@@ -138,7 +138,7 @@ class CalendarPage {
     `;
   }
 
-  // Visualização de Meses (Visão Anual com resumos)
+  // Visualização de Meses (Visão Anual com resumos e saldos de fechamento de caixa)
   static renderMonthsView(app, state) {
     const { year } = state.calendarState;
     const activeTxs = app.getActiveTransactions();
@@ -152,6 +152,10 @@ class CalendarPage {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
+    // Calculate daily balances for the entire year to get the ending balance of each month
+    const endCalcDate = `${year}-12-31`;
+    const dailyBalances = FinancialEngine.calculateDailyBalances(app.accounts, activeTxs, "2026-01-01", endCalcDate);
+
     for (let m = 0; m < 12; m++) {
       const monthKey = `${year}-${String(m + 1).padStart(2, '0')}`;
       let income = 0;
@@ -163,12 +167,20 @@ class CalendarPage {
         }
       });
       const net = income - expense;
+
+      // Running balance at the end of this month
+      const lastDay = new Date(year, m + 1, 0).getDate();
+      const monthEndKey = `${year}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const endBalance = dailyBalances[monthEndKey]?.balance || 0;
+
       const fmtInc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(income);
       const fmtExp = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(expense);
       const fmtNet = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Math.abs(net));
+      const fmtEndBalance = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(endBalance);
       
       const netClass = net >= 0 ? 'margin-positive' : 'margin-negative';
       const netSign = net >= 0 ? '+' : '-';
+      const endBalanceClass = endBalance >= 0 ? 'margin-positive' : 'margin-negative';
       const isCurrentMonth = year === currentYear && m === currentMonth;
 
       gridHtml += `
@@ -186,6 +198,10 @@ class CalendarPage {
             <div class="calendar-summary-row calendar-summary-net">
               <span>Balanço:</span>
               <span class="${netClass}">${netSign}${fmtNet}</span>
+            </div>
+            <div class="calendar-summary-row" style="margin-top: 4px; border-top: 1px dashed var(--border-color); padding-top: 4px;">
+              <span>Caixa Final:</span>
+              <span class="${endBalanceClass}" style="font-weight: 700;">${fmtEndBalance}</span>
             </div>
           </div>
         </div>
@@ -205,7 +221,7 @@ class CalendarPage {
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
             </button>
           </div>
-          <div class="kpi-subtext" style="text-align:right;">Selecione um mês para ver os detalhes diários.</div>
+          <div class="kpi-subtext" style="text-align:right;">Selecione um mês para ver opções e detalhes.</div>
         </div>
 
         <div class="calendar-months-grid">
@@ -215,7 +231,7 @@ class CalendarPage {
     `;
   }
 
-  // Visualização de Anos (Visão Década com resumos)
+  // Visualização de Anos (Visão Década com resumos e saldos de fechamento de caixa)
   static renderYearsView(app, state) {
     const { year } = state.calendarState;
     const activeTxs = app.getActiveTransactions();
@@ -241,16 +257,26 @@ class CalendarPage {
       }
     });
 
+    // Calculate daily balances up to the end of the decade range to extract ending balances of each year
+    const endDecadeDate = `${endYear}-12-31`;
+    const dailyBalances = FinancialEngine.calculateDailyBalances(app.accounts, activeTxs, "2026-01-01", endDecadeDate);
+
     for (let y = startYear; y <= endYear; y++) {
       const { income, expense } = yearData[y];
       const net = income - expense;
       
+      // Running balance at the end of December 31st of this year
+      const yearEndKey = `${y}-12-31`;
+      const endBalance = dailyBalances[yearEndKey]?.balance || 0;
+
       const fmtInc = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(income);
       const fmtExp = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(expense);
       const fmtNet = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Math.abs(net));
+      const fmtEndBalance = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(endBalance);
       
       const netClass = net >= 0 ? 'margin-positive' : 'margin-negative';
       const netSign = net >= 0 ? '+' : '-';
+      const endBalanceClass = endBalance >= 0 ? 'margin-positive' : 'margin-negative';
       const isCurrentYear = y === currentYear;
 
       gridHtml += `
@@ -268,6 +294,10 @@ class CalendarPage {
             <div class="calendar-summary-row calendar-summary-net">
               <span>Balanço:</span>
               <span class="${netClass}">${netSign}${fmtNet}</span>
+            </div>
+            <div class="calendar-summary-row" style="margin-top: 4px; border-top: 1px dashed var(--border-color); padding-top: 4px;">
+              <span>Caixa Final:</span>
+              <span class="${endBalanceClass}" style="font-weight: 700;">${fmtEndBalance}</span>
             </div>
           </div>
         </div>
@@ -287,7 +317,7 @@ class CalendarPage {
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
             </button>
           </div>
-          <div class="kpi-subtext" style="text-align:right;">Selecione um ano para abrir os meses correspondentes.</div>
+          <div class="kpi-subtext" style="text-align:right;">Selecione um ano para ver opções e detalhes.</div>
         </div>
 
         <div class="calendar-years-grid">
@@ -297,10 +327,84 @@ class CalendarPage {
     `;
   }
 
+  // Floating Context Menu Modal for calendar element interactions
+  static showChoiceModal(titleText, appInstance, dateStr, onFilter, onDrillDown = null, drillLabel = "") {
+    const existing = document.getElementById('calendar-choice-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'calendar-choice-modal';
+    modal.className = 'modal-overlay active';
+    
+    let drillBtnHtml = '';
+    if (onDrillDown && drillLabel) {
+      drillBtnHtml = `
+        <button class="btn btn-primary" id="btn-choice-drill" style="width:100%; justify-content:center; background-color: var(--accent-primary);">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          ${drillLabel}
+        </button>
+      `;
+    }
+
+    modal.innerHTML = `
+      <div class="modal-card" style="max-width: 320px; padding: 22px; text-align: center; display: flex; flex-direction: column; gap: 14px; border-radius: var(--border-radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid var(--border-color); background: var(--bg-card);">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);">${titleText}</h3>
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 6px 0;">O que você deseja fazer neste período?</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          ${drillBtnHtml}
+          <button class="btn btn-secondary" id="btn-choice-add" style="width:100%; justify-content:center; border: 1px solid var(--border-color); background: var(--bg-sidebar); color: var(--text-main); font-weight: 600;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:8px;"><path d="M12 5v14M5 12h14"/></svg>
+            Registrar Lançamento
+          </button>
+          <button class="btn btn-secondary" id="btn-choice-view" style="width:100%; justify-content:center; border: 1px solid var(--border-color); background: var(--bg-sidebar); color: var(--text-main); font-weight: 600;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:8px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Ver Transações
+          </button>
+          <button class="btn btn-secondary" id="btn-choice-cancel" style="width:100%; justify-content:center; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:12px; margin-top: 4px;">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+      modal.classList.remove('active');
+      setTimeout(() => modal.remove(), 200);
+    };
+
+    if (onDrillDown) {
+      modal.querySelector('#btn-choice-drill').onclick = () => {
+        close();
+        onDrillDown();
+      };
+    }
+
+    modal.querySelector('#btn-choice-add').onclick = () => {
+      close();
+      appInstance.openQuickAddModal(dateStr);
+    };
+
+    modal.querySelector('#btn-choice-view').onclick = () => {
+      close();
+      onFilter();
+    };
+
+    modal.querySelector('#btn-choice-cancel').onclick = close;
+    modal.onclick = (e) => {
+      if (e.target === modal) close();
+    };
+  }
+
   static initEvents(app, state, appInstance) {
     const prevBtn = document.getElementById("cal-prev-btn");
     const nextBtn = document.getElementById("cal-next-btn");
     const headerTitle = document.getElementById("cal-header-title");
+
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
 
     if (prevBtn && nextBtn) {
       prevBtn.addEventListener("click", () => {
@@ -356,16 +460,42 @@ class CalendarPage {
       });
     }
 
-    // Set view specific click triggers
+    // Set view specific click triggers and modal actions
     const { viewMode } = state.calendarState;
     if (viewMode === 'years') {
       const cards = document.querySelectorAll(".calendar-year-card");
       cards.forEach(card => {
         card.addEventListener("click", () => {
           const y = parseInt(card.getAttribute("data-year"));
-          state.calendarState.year = y;
-          state.calendarState.viewMode = 'months';
-          appInstance.renderActivePage();
+          const firstDayStr = `${y}-01-01`;
+          const lastDayStr = `${y}-12-31`;
+          
+          CalendarPage.showChoiceModal(
+            `Ano ${y}`,
+            appInstance,
+            firstDayStr,
+            () => {
+              // Filtrar transações por ano
+              state.txFilters = {
+                search: '',
+                type: 'all',
+                account: 'all',
+                status: 'all',
+                member: 'all',
+                showTrash: false,
+                startDate: firstDayStr,
+                endDate: lastDayStr
+              };
+              window.location.hash = '#transactions';
+            },
+            () => {
+              // Drill Down para visão de meses
+              state.calendarState.year = y;
+              state.calendarState.viewMode = 'months';
+              appInstance.renderActivePage();
+            },
+            "Ver Meses do Ano"
+          );
         });
       });
     } else if (viewMode === 'months') {
@@ -373,19 +503,68 @@ class CalendarPage {
       cards.forEach(card => {
         card.addEventListener("click", () => {
           const m = parseInt(card.getAttribute("data-month"));
-          state.calendarState.month = m;
-          state.calendarState.viewMode = 'days';
-          appInstance.renderActivePage();
+          const year = state.calendarState.year;
+          const firstDayStr = `${year}-${String(m + 1).padStart(2, '0')}-01`;
+          const lastDay = new Date(year, m + 1, 0).getDate();
+          const lastDayStr = `${year}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+          
+          CalendarPage.showChoiceModal(
+            `${monthNames[m]} de ${year}`,
+            appInstance,
+            firstDayStr,
+            () => {
+              // Filtrar transações por mês
+              state.txFilters = {
+                search: '',
+                type: 'all',
+                account: 'all',
+                status: 'all',
+                member: 'all',
+                showTrash: false,
+                startDate: firstDayStr,
+                endDate: lastDayStr
+              };
+              window.location.hash = '#transactions';
+            },
+            () => {
+              // Drill Down para visão de dias
+              state.calendarState.month = m;
+              state.calendarState.viewMode = 'days';
+              appInstance.renderActivePage();
+            },
+            "Ver Dias do Mês"
+          );
         });
       });
     } else {
-      // Click event to register new transaction on day box
+      // Click event to show choice popup on day box
       const days = document.querySelectorAll(".calendar-day[data-date]");
       days.forEach(dayCell => {
         dayCell.addEventListener("click", (e) => {
           if (e.target.closest(".day-popover")) return;
           const dateStr = dayCell.getAttribute("data-date");
-          appInstance.openQuickAddModal(dateStr);
+          const parts = dateStr.split('-');
+          const formattedTitle = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          
+          CalendarPage.showChoiceModal(
+            formattedTitle,
+            appInstance,
+            dateStr,
+            () => {
+              // Filtrar transações por dia
+              state.txFilters = {
+                search: '',
+                type: 'all',
+                account: 'all',
+                status: 'all',
+                member: 'all',
+                showTrash: false,
+                startDate: dateStr,
+                endDate: dateStr
+              };
+              window.location.hash = '#transactions';
+            }
+          );
         });
       });
     }

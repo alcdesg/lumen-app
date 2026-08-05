@@ -9,8 +9,9 @@ class ApplicationController {
     this.state = {
       currentTab: 'panel',
       calendarState: {
-        year: 2026,
-        month: 6 // July (0-indexed)
+        year: new Date().getFullYear(),
+        month: new Date().getMonth(),
+        viewMode: 'days'
       },
       txFilters: {
         search: '',
