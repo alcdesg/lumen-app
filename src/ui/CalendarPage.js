@@ -66,6 +66,18 @@ class CalendarPage {
       const intensityClass = FinancialEngine.getIntensity(dayData.balance);
       const isToday = dayDateStr === todayStr;
 
+      // Adaptable popover positioning classes based on cell coordinates
+      const cellIndex = firstDayIndex + day - 1;
+      const isTopRow = Math.floor(cellIndex / 7) < 2; // Rows 0 and 1 position downwards
+      const isSunday = cellIndex % 7 === 0;         // Sunday aligns left
+      const isSaturday = cellIndex % 7 === 6;       // Saturday aligns right
+
+      let popoverClasses = ['day-popover'];
+      if (isTopRow) popoverClasses.push('popover-bottom');
+      if (isSunday) popoverClasses.push('popover-left-align');
+      if (isSaturday) popoverClasses.push('popover-right-align');
+      const popoverClassStr = popoverClasses.join(' ');
+
       const fmtBalance = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(dayData.balance);
       const fmtIncome = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(dayData.income);
       const fmtExpense = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(dayData.expense);
@@ -89,7 +101,7 @@ class CalendarPage {
       }
 
       const popoverHtml = `
-        <div class="day-popover">
+        <div class="${popoverClassStr}">
           <div class="popover-header">${day} de ${monthNames[month]}</div>
           ${popoverItemsHtml}
           <div class="popover-divider"></div>
@@ -328,7 +340,7 @@ class CalendarPage {
   }
 
   // Floating Context Menu Modal for calendar element interactions
-  static showChoiceModal(titleText, appInstance, dateStr, onFilter, onDrillDown = null, drillLabel = "") {
+  static showChoiceModal(titleText, appInstance, dateStr, onFilter, onDrillDown = null, drillLabel = "", summaryData = null) {
     const existing = document.getElementById('calendar-choice-modal');
     if (existing) existing.remove();
 
@@ -346,10 +358,67 @@ class CalendarPage {
       `;
     }
 
+    // Generate daily summary HTML for context visibility (especially on mobile devices where hover is disabled)
+    let summaryHtml = '';
+    if (summaryData) {
+      const { income, expense, balance, transactions } = summaryData;
+      const fmtBalance = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(balance);
+      const fmtIncome = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(income);
+      const fmtExpense = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(expense);
+      const balanceClass = balance >= 0 ? 'margin-positive' : 'margin-negative';
+
+      let txListHtml = '';
+      if (transactions && transactions.length > 0) {
+        txListHtml = `
+          <div style="max-height: 110px; overflow-y: auto; margin-top: 10px; padding: 8px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); background: var(--bg-sidebar); text-align: left;">
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Movimentações do Dia</div>
+        `;
+        transactions.forEach(t => {
+          const amt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(t.amount));
+          const typeClass = t.amount > 0 ? 'flow-in' : 'flow-out';
+          const typeSign = t.amount > 0 ? '+' : '-';
+          txListHtml += `
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; color: var(--text-main);">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${t.description}">${t.description}</span>
+              <span class="${typeClass}" style="font-weight:600;">${typeSign}${amt}</span>
+            </div>
+          `;
+        });
+        txListHtml += `</div>`;
+      } else {
+        txListHtml = `
+          <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); background: var(--bg-sidebar); margin-top: 10px;">
+            Nenhum lançamento registrado neste dia
+          </div>
+        `;
+      }
+
+      summaryHtml = `
+        <div style="margin: 4px 0 10px 0; padding: 12px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: rgba(255,255,255,0.01); display: flex; flex-direction: column; gap: 4px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color: var(--text-secondary);">
+            <span>Receitas:</span>
+            <span class="margin-positive" style="font-weight:600;">+${fmtIncome}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; color: var(--text-secondary);">
+            <span>Despesas:</span>
+            <span class="margin-negative" style="font-weight:600;">-${fmtExpense}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px; color: var(--text-main); font-weight: 700; margin-top: 4px; border-top: 1px dashed var(--border-color); padding-top: 4px;">
+            <span>Caixa Projetado:</span>
+            <span class="${balanceClass}">${fmtBalance}</span>
+          </div>
+          ${txListHtml}
+        </div>
+      `;
+    }
+
     modal.innerHTML = `
       <div class="modal-card" style="max-width: 320px; padding: 22px; text-align: center; display: flex; flex-direction: column; gap: 14px; border-radius: var(--border-radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid var(--border-color); background: var(--bg-card);">
         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);">${titleText}</h3>
-        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 6px 0;">O que você deseja fazer neste período?</p>
+        
+        ${summaryHtml}
+
+        <p style="font-size: 11px; color: var(--text-secondary); margin: 0 0 2px 0;">O que você deseja fazer neste período?</p>
         <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
           ${drillBtnHtml}
           <button class="btn btn-secondary" id="btn-choice-add" style="width:100%; justify-content:center; border: 1px solid var(--border-color); background: var(--bg-sidebar); color: var(--text-main); font-weight: 600;">
@@ -546,6 +615,27 @@ class CalendarPage {
           const parts = dateStr.split('-');
           const formattedTitle = `${parts[2]}/${parts[1]}/${parts[0]}`;
           
+          // Re-calculate the day's financial summary dynamically for the Choice Modal
+          const activeTxs = app.getActiveTransactions();
+          const dayTxs = activeTxs.filter(t => t.date === dateStr);
+          let income = 0;
+          let expense = 0;
+          dayTxs.forEach(t => {
+            if (t.amount > 0) income += t.amount;
+            else expense += Math.abs(t.amount);
+          });
+          
+          // Calculate daily balance of the specific date
+          const dailyBalances = FinancialEngine.calculateDailyBalances(app.accounts, activeTxs, "2026-01-01", dateStr);
+          const balance = dailyBalances[dateStr]?.balance || 0;
+
+          const dayDataSummary = {
+            income,
+            expense,
+            balance,
+            transactions: dayTxs
+          };
+
           CalendarPage.showChoiceModal(
             formattedTitle,
             appInstance,
@@ -563,7 +653,10 @@ class CalendarPage {
                 endDate: dateStr
               };
               window.location.hash = '#transactions';
-            }
+            },
+            null,
+            "",
+            dayDataSummary
           );
         });
       });

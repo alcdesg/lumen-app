@@ -980,6 +980,45 @@ input:focus, select:focus {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Posicionamento adaptável do Popover para evitar cortes nas bordas */
+.day-popover.popover-bottom {
+  bottom: auto;
+  top: 110%;
+  transform: translateX(-50%) translateY(-5px);
+}
+.calendar-day:hover .day-popover.popover-bottom {
+  transform: translateX(-50%) translateY(0);
+}
+
+.day-popover.popover-left-align {
+  left: 0;
+  transform: translateX(0) translateY(5px);
+}
+.calendar-day:hover .day-popover.popover-left-align {
+  transform: translateX(0) translateY(0);
+}
+.day-popover.popover-bottom.popover-left-align {
+  transform: translateX(0) translateY(-5px);
+}
+.calendar-day:hover .day-popover.popover-bottom.popover-left-align {
+  transform: translateX(0) translateY(0);
+}
+
+.day-popover.popover-right-align {
+  left: auto;
+  right: 0;
+  transform: translateX(0) translateY(5px);
+}
+.calendar-day:hover .day-popover.popover-right-align {
+  transform: translateX(0) translateY(0);
+}
+.day-popover.popover-bottom.popover-right-align {
+  transform: translateX(0) translateY(-5px);
+}
+.calendar-day:hover .day-popover.popover-bottom.popover-right-align {
+  transform: translateX(0) translateY(0);
+}
+
 .popover-header {
   font-size: 11px;
   font-weight: 700;
