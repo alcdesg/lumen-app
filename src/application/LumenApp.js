@@ -890,29 +890,55 @@ class LumenApp {
         scenarioNetTotal: 0,
         targetDate: null,
         projectedCashOnTargetDate: 0,
-        hypotheticalBalance: 0
+        hypotheticalBalance: 0,
+        timeline: []
       };
     }
 
     const totals = this.calculateScenarioTotal(scenarioId);
     
-    // Identificar a data-alvo mais distante dos itens
-    const dates = items.map(i => i.date).filter(Boolean).sort();
-    const targetDate = dates.length > 0 ? dates[dates.length - 1] : FinancialEngine.formatDate(new Date());
+    // Identificar todas as datas únicas ordenadas cronologicamente
+    const uniqueDates = Array.from(new Set(items.map(i => i.date).filter(Boolean))).sort();
+    const targetDate = uniqueDates[uniqueDates.length - 1] || FinancialEngine.formatDate(new Date());
 
-    const todayStr = FinancialEngine.formatDate(new Date());
-    const startDate = todayStr < targetDate ? todayStr : targetDate;
+    // Alinhamento exato com a aba Calendário: cálculo a partir de 2026-01-01 com transações ativas
+    const activeTxs = this.getActiveTransactions();
+    const startCalcDate = "2026-01-01";
     
-    // Lê os saldos projetados a partir unicamente das transações operacionais reais (§3.1)
     const dailyBalances = FinancialEngine.calculateDailyBalances(
       this.accounts,
-      this.transactions,
-      startDate,
+      activeTxs,
+      startCalcDate,
       targetDate
     );
 
+    // Constrói a linha do tempo de impacto data a data
+    let cumulativeNet = 0;
+    const timeline = uniqueDates.map(date => {
+      const dayItems = items.filter(i => i.date === date);
+      const dayIncome = dayItems.filter(i => i.type === 'income').reduce((sum, i) => sum + i.amount, 0);
+      const dayExpense = dayItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
+      const dayNet = dayIncome - dayExpense;
+
+      cumulativeNet += dayNet;
+      const realBalance = dailyBalances[date] ? dailyBalances[date].balance : 0;
+      const hypotheticalBalance = realBalance + cumulativeNet;
+
+      return {
+        date,
+        items: dayItems,
+        dayIncome,
+        dayExpense,
+        dayNet,
+        cumulativeNet,
+        realBalance,
+        hypotheticalBalance,
+        isAlert: hypotheticalBalance < 0
+      };
+    });
+
     const projectedCashOnTargetDate = dailyBalances[targetDate] ? dailyBalances[targetDate].balance : 0;
-    const hypotheticalBalance = projectedCashOnTargetDate + totals.netTotal; // netTotal = entradas - saídas
+    const hypotheticalBalance = projectedCashOnTargetDate + totals.netTotal;
 
     return {
       hasItems: true,
@@ -921,7 +947,8 @@ class LumenApp {
       expenseTotal: totals.expenseTotal,
       targetDate,
       projectedCashOnTargetDate,
-      hypotheticalBalance
+      hypotheticalBalance,
+      timeline
     };
   }
 

@@ -502,6 +502,32 @@ test("Cenários - Ponte 2: Promoção com Regra de Data e Snapshot Congelado", a
   expect(futureItem.valor_orcado).toBe(1500);
 });
 
+test("Cenários - Ponte 1: Linha do Tempo e Alinhamento com Calendário (2026-01-01)", async () => {
+  const mockStorage = new MockStorage();
+  const app = new LumenApp(mockStorage);
+  await app.init();
+  app.userRole = 'admin';
+
+  app.accounts.push(new Account({ id: 'acc-1', name: 'Conta Principal', initial_balance: 10000 }));
+  app.transactions.push(new Transaction({ id: 't-1', account_id: 'acc-1', category_id: 'c-1', description: 'Salário', amount: 5000, date: '2026-07-01', status: 'confirmed' }));
+
+  const sc = await app.addScenario({ name: "Cenário Festas" });
+  await app.addScenarioItem({ scenario_id: sc.id, type: 'expense', amount: 2000, description: 'Decoração', date: '2026-11-18' });
+  await app.addScenarioItem({ scenario_id: sc.id, type: 'expense', amount: 3000, description: 'Ceia', date: '2026-12-24' });
+
+  const jux = app.calculateScenarioJuxtaposition(sc.id);
+  expect(jux.hasItems).toBe(true);
+  expect(jux.timeline.length).toBe(2);
+  
+  // Real balance on 2026-11-18 should be 10000 + 5000 = 15000
+  expect(jux.timeline[0].realBalance).toBe(15000);
+  expect(jux.timeline[0].hypotheticalBalance).toBe(13000); // 15000 - 2000
+
+  // Real balance on 2026-12-24 should be 15000
+  expect(jux.timeline[1].realBalance).toBe(15000);
+  expect(jux.timeline[1].hypotheticalBalance).toBe(10000); // 15000 - 5000
+});
+
 
 // --- Execution Logic ---
 async function runTests() {

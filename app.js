@@ -263,10 +263,10 @@ class ApplicationController {
 
     contentView.innerHTML = html;
 
-    // Toggle global add transaction button visibility based on permissions
+    // Toggle global add transaction button visibility based on permissions and active tab
     const addBtn = document.getElementById('global-add-tx-btn');
     if (addBtn) {
-      if (!this.app.canEdit()) {
+      if (!this.app.canEdit() || this.state.currentTab === 'scenarios') {
         addBtn.style.display = 'none';
       } else {
         addBtn.style.display = 'block';

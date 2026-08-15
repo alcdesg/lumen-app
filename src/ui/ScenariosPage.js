@@ -266,7 +266,7 @@ class ScenariosPage {
   }
 
   /**
-   * Renders Ponte 1 Juxtaposition Banner with operational cash flow.
+   * Renders Ponte 1 Juxtaposition Banner with operational cash flow and timeline per date.
    */
   static renderJuxtapositionBanner(jux) {
     if (!jux || !jux.hasItems) {
@@ -289,7 +289,8 @@ class ScenariosPage {
     const hypColor = isHypotheticalPositive ? 'var(--color-income)' : 'var(--color-expense)';
 
     return `
-      <div class="card juxtaposition-card" style="background: linear-gradient(135deg, rgba(110, 68, 255, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid var(--accent-primary); border-radius: var(--border-radius-lg); padding: 18px 22px; position: relative;">
+      <div class="card juxtaposition-card" style="background: linear-gradient(135deg, rgba(110, 68, 255, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid var(--accent-primary); border-radius: var(--border-radius-lg); padding: 18px 22px; display: flex; flex-direction: column; gap: 16px;">
+        <!-- Card de Resumo do Encerramento -->
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div style="background: var(--accent-primary); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 0 12px var(--accent-primary);">
@@ -301,7 +302,7 @@ class ScenariosPage {
                 <span class="badge" style="font-size: 10px; background: rgba(110, 68, 255, 0.2); color: var(--accent-primary); border: 1px solid var(--accent-primary);">Leitura Pura</span>
               </h4>
               <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-                Custo total em <strong>${formattedTargetDate}</strong> comparado com o saldo projetado real da sua conta corrente.
+                Resultado final acumulado no encerramento em <strong>${formattedTargetDate}</strong> comparado com o saldo projetado no Calendário.
               </p>
             </div>
           </div>
@@ -315,18 +316,67 @@ class ScenariosPage {
             <span style="font-size: 18px; color: var(--text-muted); font-weight: 300;">${jux.scenarioNetTotal >= 0 ? '+' : '−'}</span>
 
             <div style="text-align: right;">
-              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Resultado do Cenário</span>
+              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Resultado Líquido do Cenário</span>
               <div style="font-size: 14px; font-weight: 700; color: ${jux.scenarioNetTotal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'};">${formattedScenarioNet}</div>
             </div>
 
             <span style="font-size: 18px; color: var(--text-muted); font-weight: 300;">=</span>
 
             <div style="text-align: right; background: var(--bg-card); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Resultado Hipotético do Caixa</span>
+              <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Resultado Hipotético Final</span>
               <div style="font-size: 16px; font-weight: 800; color: ${hypColor};">${formattedHypothetical}</div>
             </div>
           </div>
         </div>
+
+        <!-- Linha do Tempo de Impacto Data a Data -->
+        ${jux.timeline && jux.timeline.length > 0 ? `
+          <div style="border-top: 1px dashed rgba(110, 68, 255, 0.3); padding-top: 14px;">
+            <h5 style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="color: var(--accent-primary);"><path d="M19 3h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+              Evolução do Caixa a cada Data com Itens do Cenário:
+            </h5>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${jux.timeline.map(t => {
+                const dateFmt = new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const realFmt = t.realBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const dayNetFmt = (t.dayNet >= 0 ? '+' : '') + t.dayNet.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const hypFmt = t.hypotheticalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const hypColor = t.hypotheticalBalance >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
+                return `
+                  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; background: var(--bg-card); border: 1px solid ${t.isAlert ? 'var(--color-expense)' : 'var(--border-color)'}; padding: 10px 14px; border-radius: 8px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-weight: 700; color: var(--text-main); font-family: monospace;">📅 ${dateFmt}</span>
+                      <span style="color: var(--text-muted); font-size: 11px;">(${t.items.length} item(ns): <strong>${t.items.map(i => this.escapeHtml(i.description)).join(', ')}</strong>)</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; flex-wrap: wrap;">
+                      <div>
+                        <span style="color: var(--text-muted); font-size: 10px;">Caixa Real no dia:</span>
+                        <strong style="color: var(--text-main); margin-left: 4px;">${realFmt}</strong>
+                      </div>
+                      <div>
+                        <span style="color: var(--text-muted); font-size: 10px;">Custo/Receita do dia:</span>
+                        <strong style="color: ${t.dayNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}; margin-left: 4px;">${dayNetFmt}</strong>
+                      </div>
+                      <div style="background: var(--bg-sidebar); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;">Saldo Resultante:</span>
+                        <strong style="color: ${hypColor}; margin-left: 4px; font-weight: 700;">${hypFmt}</strong>
+                      </div>
+                      ${t.isAlert ? `
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: var(--color-expense); border: 1px solid var(--color-expense); font-size: 10px; font-weight: 700;">
+                          ⚠️ Alerta de Caixa Negativo!
+                        </span>
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -486,7 +536,14 @@ class ScenariosPage {
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
               <div class="form-group">
-                <label for="item-category" style="font-size: 12px; font-weight: 600;">Categoria (Opcional no rascunho)</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label for="item-category" style="font-size: 12px; font-weight: 600; margin: 0;">Categoria (Opcional)</label>
+                  ${app.canEdit() ? `
+                    <button type="button" id="btn-quick-add-category-scenario" style="background: none; border: none; color: var(--accent-primary); font-size: 11px; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline;">
+                      + Nova Categoria
+                    </button>
+                  ` : ''}
+                </div>
                 <select id="item-category" style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
                   <option value="">-- Selecionar depois --</option>
                   ${categories.map(c => `<option value="${c.id}">${this.escapeHtml(c.name)} (${c.type === 'income' ? 'Entrada' : 'Saída'})</option>`).join('')}
@@ -764,6 +821,36 @@ class ScenariosPage {
     if (btnOpenAddItem) btnOpenAddItem.onclick = () => openItemModal();
     if (btnCloseItem) btnCloseItem.onclick = () => closeItemModal();
     if (btnCancelItem) btnCancelItem.onclick = () => closeItemModal();
+
+    // Criar nova categoria rapidamente no formulário do item
+    const btnQuickCategory = document.getElementById('btn-quick-add-category-scenario');
+    if (btnQuickCategory) {
+      btnQuickCategory.onclick = async () => {
+        const catName = prompt('Nome da nova categoria:');
+        if (!catName || !catName.trim()) return;
+        const currentType = document.getElementById('item-type') ? document.getElementById('item-type').value : 'expense';
+        const typeStr = confirm(`Deseja criar a categoria "${catName.trim()}" como ${currentType === 'income' ? 'RECEITA (Entrada)' : 'DESPESA (Saída)'}?\n\n[OK] = ${currentType === 'income' ? 'Receita' : 'Despesa'}\n[Cancelar] = Inverter Tipo`)
+          ? currentType
+          : (currentType === 'income' ? 'expense' : 'income');
+
+        try {
+          const newCat = app.addCategory({ name: catName.trim(), type: typeStr });
+          await app.save();
+
+          const catSelect = document.getElementById('item-category');
+          if (catSelect) {
+            const opt = document.createElement('option');
+            opt.value = newCat.id;
+            opt.textContent = `${newCat.name} (${newCat.type === 'income' ? 'Entrada' : 'Saída'})`;
+            opt.selected = true;
+            catSelect.appendChild(opt);
+          }
+          alert(`Categoria "${newCat.name}" criada com sucesso!`);
+        } catch (err) {
+          alert('Erro ao criar categoria: ' + err.message);
+        }
+      };
+    }
 
     document.querySelectorAll('.btn-edit-item').forEach(btn => {
       btn.onclick = () => {
