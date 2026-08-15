@@ -229,6 +229,10 @@ class ApplicationController {
         html = CalendarPage.render(this.app, this.state);
         pageClass = CalendarPage;
         break;
+      case 'scenarios':
+        html = ScenariosPage.render(this.app, this.state);
+        pageClass = ScenariosPage;
+        break;
       case 'transactions':
         html = TransactionsPage.render(this.app, this.state);
         pageClass = TransactionsPage;

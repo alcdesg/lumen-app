@@ -2468,6 +2468,25 @@ body.light-theme .mockup-header {
   }
 }
 
+/* ==================================================================== */
+/* CENÁRIOS & PROJETOS STYLES                                           */
+/* ==================================================================== */
+
+.scenario-card:hover {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 8px 24px rgba(110, 68, 255, 0.15) !important;
+  transform: translateY(-2px);
+}
+
+.juxtaposition-card {
+  transition: all 0.3s ease;
+}
+
+.juxtaposition-card:hover {
+  box-shadow: 0 6px 20px rgba(110, 68, 255, 0.2);
+}
+
+
 
 
 

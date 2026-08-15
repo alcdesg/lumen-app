@@ -20,6 +20,8 @@ class LumenApp {
     this.categories = [];
     this.transactions = [];
     this.batches = [];
+    this.scenarios = [];
+    this.scenarioItems = [];
     this.settings = { couple_names: 'Paula & Alcides', admin_master_password: 'admin123', user_roles: {} };
     
     // User session & RBAC
@@ -39,6 +41,8 @@ class LumenApp {
     this.allTransactions = data.transactions || [];
     this.categories = (data.categories || []).map(c => new Category(c));
     this.batches = data.batches || [];
+    this.scenarios = (data.scenarios || []).map(s => new Scenario(s));
+    this.scenarioItems = (data.scenario_items || []).map(i => new ScenarioItem(i));
     this.settings = data.settings || { couple_names: 'Paula & Alcides', admin_master_password: 'admin123', user_roles: {} };
 
     // Resolve user session role if logged in
@@ -291,6 +295,8 @@ class LumenApp {
       categories: this.categories,
       transactions: this.allTransactions,
       batches: this.batches,
+      scenarios: this.scenarios,
+      scenario_items: this.scenarioItems,
       settings: this.settings
     });
 
@@ -822,5 +828,348 @@ class LumenApp {
     batch.status = 'rolled_back';
     batch.created_by_user = this.currentUserEmail;
     await this.save();
+  }
+
+  // --- Scenarios Management (Projetos Hipotéticos) ---
+
+  getScenarios(includeArchived = false) {
+    if (includeArchived) return this.scenarios;
+    return this.scenarios.filter(s => !s.archived_at);
+  }
+
+  getScenarioById(id) {
+    return this.scenarios.find(s => s.id === id) || null;
+  }
+
+  getScenarioItems(scenarioId) {
+    return this.scenarioItems.filter(i => i.scenario_id === scenarioId);
+  }
+
+  calculateScenarioTotal(scenarioId) {
+    const items = this.getScenarioItems(scenarioId);
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+    let draftCount = 0;
+    let materializedCount = 0;
+
+    items.forEach(item => {
+      if (item.type === 'income') {
+        incomeTotal += item.amount;
+      } else {
+        expenseTotal += item.amount;
+      }
+      if (item.status === 'materialized') {
+        materializedCount++;
+      } else {
+        draftCount++;
+      }
+    });
+
+    const netTotal = incomeTotal - expenseTotal;
+    return {
+      netTotal,
+      incomeTotal,
+      expenseTotal,
+      draftCount,
+      materializedCount,
+      totalItems: items.length
+    };
+  }
+
+  /**
+   * Ponte 1: Justaposição com o caixa projetado operacional (leitura pura).
+   */
+  calculateScenarioJuxtaposition(scenarioId) {
+    const scenario = this.getScenarioById(scenarioId);
+    if (!scenario) return null;
+
+    const items = this.getScenarioItems(scenarioId);
+    if (items.length === 0) {
+      return {
+        hasItems: false,
+        scenarioNetTotal: 0,
+        targetDate: null,
+        projectedCashOnTargetDate: 0,
+        hypotheticalBalance: 0
+      };
+    }
+
+    const totals = this.calculateScenarioTotal(scenarioId);
+    
+    // Identificar a data-alvo mais distante dos itens
+    const dates = items.map(i => i.date).filter(Boolean).sort();
+    const targetDate = dates.length > 0 ? dates[dates.length - 1] : FinancialEngine.formatDate(new Date());
+
+    const todayStr = FinancialEngine.formatDate(new Date());
+    const startDate = todayStr < targetDate ? todayStr : targetDate;
+    
+    // Lê os saldos projetados a partir unicamente das transações operacionais reais (§3.1)
+    const dailyBalances = FinancialEngine.calculateDailyBalances(
+      this.accounts,
+      this.transactions,
+      startDate,
+      targetDate
+    );
+
+    const projectedCashOnTargetDate = dailyBalances[targetDate] ? dailyBalances[targetDate].balance : 0;
+    const hypotheticalBalance = projectedCashOnTargetDate + totals.netTotal; // netTotal = entradas - saídas
+
+    return {
+      hasItems: true,
+      scenarioNetTotal: totals.netTotal,
+      incomeTotal: totals.incomeTotal,
+      expenseTotal: totals.expenseTotal,
+      targetDate,
+      projectedCashOnTargetDate,
+      hypotheticalBalance
+    };
+  }
+
+  async addScenario({ name, description }) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada: Usuários com perfil 'Leitor' não podem criar cenários.");
+    }
+    const scenario = new Scenario({
+      name,
+      description,
+      created_by_user: this.currentUserEmail
+    });
+    scenario.validate();
+    this.scenarios.push(scenario);
+    await this.save();
+    return scenario;
+  }
+
+  async updateScenario(id, { name, description }) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada: Usuários com perfil 'Leitor' não podem editar cenários.");
+    }
+    const scenario = this.getScenarioById(id);
+    if (!scenario) throw new Error("Cenário não encontrado.");
+    if (name !== undefined) scenario.name = name.trim();
+    if (description !== undefined) scenario.description = description.trim();
+    scenario.updated_at = new Date().toISOString();
+    scenario.validate();
+    await this.save();
+    return scenario;
+  }
+
+  async archiveScenario(id) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada: Usuários com perfil 'Leitor' não podem arquivar cenários.");
+    }
+    const scenario = this.getScenarioById(id);
+    if (!scenario) throw new Error("Cenário não encontrado.");
+    scenario.archived_at = new Date().toISOString();
+    scenario.updated_at = new Date().toISOString();
+    await this.save();
+    return scenario;
+  }
+
+  async deleteScenario(id) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    this.scenarios = this.scenarios.filter(s => s.id !== id);
+    this.scenarioItems = this.scenarioItems.filter(i => i.scenario_id !== id);
+    await this.save();
+  }
+
+  async addScenarioItem(itemData) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    const item = new ScenarioItem({
+      ...itemData,
+      created_by_user: this.currentUserEmail
+    });
+    item.validate();
+    this.scenarioItems.push(item);
+    await this.save();
+    return item;
+  }
+
+  async updateScenarioItem(id, fields) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    const item = this.scenarioItems.find(i => i.id === id);
+    if (!item) throw new Error("Item do cenário não encontrado.");
+
+    if (item.status === 'materialized') {
+      throw new Error("Itens promovidos (materialized) não podem ter seus valores/datas alterados.");
+    }
+
+    if (fields.description !== undefined) item.description = fields.description.trim();
+    if (fields.amount !== undefined) item.amount = Math.abs(Number(fields.amount) || 0);
+    if (fields.type !== undefined) item.type = fields.type;
+    if (fields.date !== undefined) item.date = fields.date;
+    if (fields.category_id !== undefined) item.category_id = fields.category_id;
+    if (fields.account_id !== undefined) item.account_id = fields.account_id;
+    if (fields.member !== undefined) item.member = fields.member;
+    item.updated_at = new Date().toISOString();
+    item.validate();
+    await this.save();
+    return item;
+  }
+
+  async deleteScenarioItem(id) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    this.scenarioItems = this.scenarioItems.filter(i => i.id !== id);
+    await this.save();
+  }
+
+  /**
+   * Ponte 2: Promove um único item de cenário para uma transação operacional real.
+   */
+  async promoteScenarioItem(itemId, { account_id, category_id, member, date, amount, description } = {}) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    const item = this.scenarioItems.find(i => i.id === itemId);
+    if (!item) throw new Error("Item de cenário não encontrado.");
+    if (item.status === 'materialized') {
+      throw new Error("Este item já foi promovido para o fluxo operacional.");
+    }
+
+    const finalAccountId = account_id || item.account_id;
+    const finalCategoryId = category_id || item.category_id;
+    const finalMember = member || item.member || 'Casal';
+    const finalDate = date || item.date;
+    const finalAmount = amount !== undefined ? Number(amount) : item.amount;
+    const finalDescription = description ? description.trim() : item.description;
+
+    if (!finalAccountId) throw new Error("Selecione a Conta operacional para registrar a movimentação.");
+    if (!finalCategoryId) throw new Error("Selecione a Categoria operacional para registrar a movimentação.");
+
+    // Regra §5.3: Status definido pela data
+    const todayStr = FinancialEngine.formatDate(new Date());
+    const txStatus = finalDate >= todayStr ? 'planned' : 'confirmed';
+
+    // Sinal do valor na transação operacional (despesas são negativas)
+    const signedAmount = item.type === 'expense' ? -Math.abs(finalAmount) : Math.abs(finalAmount);
+
+    const tx = new Transaction({
+      account_id: finalAccountId,
+      category_id: finalCategoryId,
+      description: finalDescription,
+      amount: signedAmount,
+      date: finalDate,
+      status: txStatus,
+      member: finalMember,
+      created_by_user: this.currentUserEmail
+    });
+
+    tx.validate();
+
+    // 1. Adiciona à lista operacional
+    this.transactions.push(tx);
+    this.allTransactions.push({
+      id: tx.id,
+      version: tx.version,
+      account_id: tx.account_id,
+      category_id: tx.category_id,
+      description: tx.description,
+      amount: tx.amount,
+      date: tx.date,
+      status: tx.status,
+      is_active: tx.is_active,
+      is_deleted: tx.is_deleted,
+      parent_id: tx.parent_id,
+      import_batch_id: tx.import_batch_id,
+      replaced_by_version: tx.replaced_by_version,
+      member: tx.member,
+      created_at: tx.created_at,
+      updated_at: tx.updated_at,
+      created_by_user: tx.created_by_user
+    });
+
+    // 2. Marca o item do cenário como materialized e congela snapshot (§7)
+    item.status = 'materialized';
+    item.materialized_transaction_id = tx.id;
+    item.valor_orcado = item.amount;
+    item.data_orcada = item.date;
+    item.updated_at = new Date().toISOString();
+
+    await this.save();
+    return { transaction: tx, item };
+  }
+
+  /**
+   * Promove múltiplos itens de cenário em lote.
+   */
+  async promoteScenarioItemsBatch(itemPromotions) {
+    if (!this.canEdit()) {
+      throw new Error("Permissão negada.");
+    }
+    const promotedResults = [];
+    const todayStr = FinancialEngine.formatDate(new Date());
+
+    for (const promo of itemPromotions) {
+      const { itemId, account_id, category_id, member, date, amount, description } = promo;
+      const item = this.scenarioItems.find(i => i.id === itemId);
+      if (!item || item.status === 'materialized') continue;
+
+      const finalAccountId = account_id || item.account_id;
+      const finalCategoryId = category_id || item.category_id;
+      const finalMember = member || item.member || 'Casal';
+      const finalDate = date || item.date;
+      const finalAmount = amount !== undefined ? Number(amount) : item.amount;
+      const finalDescription = description ? description.trim() : item.description;
+
+      if (!finalAccountId || !finalCategoryId) {
+        throw new Error(`O item "${item.description}" precisa de Conta e Categoria para ser promovido.`);
+      }
+
+      const txStatus = finalDate >= todayStr ? 'planned' : 'confirmed';
+      const signedAmount = item.type === 'expense' ? -Math.abs(finalAmount) : Math.abs(finalAmount);
+
+      const tx = new Transaction({
+        account_id: finalAccountId,
+        category_id: finalCategoryId,
+        description: finalDescription,
+        amount: signedAmount,
+        date: finalDate,
+        status: txStatus,
+        member: finalMember,
+        created_by_user: this.currentUserEmail
+      });
+
+      tx.validate();
+
+      this.transactions.push(tx);
+      this.allTransactions.push({
+        id: tx.id,
+        version: tx.version,
+        account_id: tx.account_id,
+        category_id: tx.category_id,
+        description: tx.description,
+        amount: tx.amount,
+        date: tx.date,
+        status: tx.status,
+        is_active: tx.is_active,
+        is_deleted: tx.is_deleted,
+        parent_id: tx.parent_id,
+        import_batch_id: tx.import_batch_id,
+        replaced_by_version: tx.replaced_by_version,
+        member: tx.member,
+        created_at: tx.created_at,
+        updated_at: tx.updated_at,
+        created_by_user: tx.created_by_user
+      });
+
+      item.status = 'materialized';
+      item.materialized_transaction_id = tx.id;
+      item.valor_orcado = item.amount;
+      item.data_orcada = item.date;
+      item.updated_at = new Date().toISOString();
+
+      promotedResults.push({ transaction: tx, item });
+    }
+
+    await this.save();
+    return promotedResults;
   }
 }

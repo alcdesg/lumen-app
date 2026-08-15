@@ -444,6 +444,8 @@ class Storage {
     localStorage.setItem("lumen_categories", JSON.stringify([]));
     localStorage.setItem("lumen_transactions", JSON.stringify([]));
     localStorage.setItem("lumen_batches", JSON.stringify([]));
+    localStorage.setItem("lumen_scenarios", JSON.stringify([]));
+    localStorage.setItem("lumen_scenario_items", JSON.stringify([]));
     localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
 
     if (this.isUsingSupabase && this.supabase) {
@@ -452,6 +454,8 @@ class Storage {
         const results = await Promise.all([
           this.supabase.from("transactions").delete().neq("id", "_non_existent_"),
           this.supabase.from("batches").delete().neq("id", "_non_existent_"),
+          this.supabase.from("scenario_items").delete().neq("id", "_non_existent_"),
+          this.supabase.from("scenarios").delete().neq("id", "_non_existent_"),
           this.supabase.from("accounts").delete().neq("id", "_non_existent_"),
           this.supabase.from("categories").delete().neq("id", "_non_existent_"),
           this.supabase.from("settings").delete().neq("key", "_non_existent_")
@@ -471,6 +475,8 @@ class Storage {
         categories: [],
         transactions: [],
         batches: [],
+        scenarios: [],
+        scenario_items: [],
         settings: { couple_names: "Paula & Alcides" }
       });
     }
@@ -556,6 +562,12 @@ class Storage {
         const { data: batches, error: errBat } = await this.supabase.from("batches").select("*");
         if (errBat) throw errBat;
 
+        const { data: scenarios, error: errScen } = await this.supabase.from("scenarios").select("*");
+        if (errScen && errScen.code !== '42P01') throw errScen; // Ignore if table doesn't exist yet in Supabase before migration run
+
+        const { data: scenarioItems, error: errItems } = await this.supabase.from("scenario_items").select("*");
+        if (errItems && errItems.code !== '42P01') throw errItems;
+
         const { data: settings, error: errSet } = await this.supabase.from("settings").select("*");
         if (errSet) throw errSet;
 
@@ -572,6 +584,8 @@ class Storage {
           categories: categories || [],
           transactions: transactions || [],
           batches: batches || [],
+          scenarios: scenarios || [],
+          scenario_items: scenarioItems || [],
           settings: settingsObj
         };
 
@@ -590,6 +604,8 @@ class Storage {
         const categories = await this.readJsonFile("categories.json");
         const transactions = await this.readJsonFile("transactions.json");
         const batches = await this.readJsonFile("batches.json");
+        const scenarios = (await this.readJsonFile("scenarios.json")) || [];
+        const scenario_items = (await this.readJsonFile("scenario_items.json")) || [];
         let settings = await this.readJsonFile("settings.json");
         
         if (!settings) {
@@ -598,7 +614,7 @@ class Storage {
         
         if (accounts && categories && transactions && batches) {
           // Sync back to LocalStorage to ensure fallback is warm
-          const data = { accounts, categories, transactions, batches, settings };
+          const data = { accounts, categories, transactions, batches, scenarios, scenario_items, settings };
           this.saveToLocalStorage(data);
           return data;
         } else {
@@ -614,9 +630,9 @@ class Storage {
   /**
    * Saves all relational data tables.
    */
-  async saveData({ accounts, categories, transactions, batches, settings }) {
+  async saveData({ accounts, categories, transactions, batches, scenarios = [], scenario_items = [], settings }) {
     this.lastSaveTime = Date.now();
-    const data = { accounts, categories, transactions, batches, settings };
+    const data = { accounts, categories, transactions, batches, scenarios, scenario_items, settings };
 
     // Fila sequencial (Mutex) para garantir que apenas um salvamento ocorra por vez de forma ordenada
     return new Promise((resolve, reject) => {
@@ -634,6 +650,8 @@ class Storage {
             const categoriesWithUser = categories.map(c => ({ ...c, user_id: user.id }));
             const batchesWithUser = batches.map(b => ({ ...b, user_id: user.id }));
             const txsWithUser = transactions.map(t => ({ ...t, user_id: user.id }));
+            const scenariosWithUser = (scenarios || []).map(s => ({ ...s, user_id: user.id }));
+            const itemsWithUser = (scenario_items || []).map(i => ({ ...i, user_id: user.id }));
             const settingsRows = Object.entries(settings || {}).map(([key, val]) => ({
               key,
               value: val,
@@ -641,16 +659,25 @@ class Storage {
             }));
 
             // Upsert all tables in parallel
-            const results = await Promise.all([
+            const promises = [
               this.supabase.from("accounts").upsert(accountsWithUser),
               this.supabase.from("categories").upsert(categoriesWithUser),
               this.supabase.from("batches").upsert(batchesWithUser),
               this.supabase.from("transactions").upsert(txsWithUser),
               this.supabase.from("settings").upsert(settingsRows)
-            ]);
+            ];
+
+            if (scenariosWithUser.length > 0) {
+              promises.push(this.supabase.from("scenarios").upsert(scenariosWithUser));
+            }
+            if (itemsWithUser.length > 0) {
+              promises.push(this.supabase.from("scenario_items").upsert(itemsWithUser));
+            }
+
+            const results = await Promise.all(promises);
 
             for (const res of results) {
-              if (res.error) throw res.error;
+              if (res.error && res.error.code !== '42P01') throw res.error;
             }
 
             // Also save to local storage for quick access
@@ -712,11 +739,13 @@ class Storage {
     await writable.close();
   }
 
-  async saveToFileSystem({ accounts, categories, transactions, batches, settings }) {
+  async saveToFileSystem({ accounts, categories, transactions, batches, scenarios = [], scenario_items = [], settings }) {
     await this.writeJsonFile("accounts.json", accounts);
     await this.writeJsonFile("categories.json", categories);
     await this.writeJsonFile("transactions.json", transactions);
     await this.writeJsonFile("batches.json", batches);
+    await this.writeJsonFile("scenarios.json", scenarios);
+    await this.writeJsonFile("scenario_items.json", scenario_items);
     await this.writeJsonFile("settings.json", settings || { couple_names: "Paula & Alcides" });
   }
 
@@ -728,15 +757,19 @@ class Storage {
       categories: JSON.parse(localStorage.getItem("lumen_categories") || "[]"),
       transactions: JSON.parse(localStorage.getItem("lumen_transactions") || "[]"),
       batches: JSON.parse(localStorage.getItem("lumen_batches") || "[]"),
+      scenarios: JSON.parse(localStorage.getItem("lumen_scenarios") || "[]"),
+      scenario_items: JSON.parse(localStorage.getItem("lumen_scenario_items") || "[]"),
       settings: JSON.parse(localStorage.getItem("lumen_settings") || '{"couple_names": "Paula & Alcides"}')
     };
   }
 
-  saveToLocalStorage({ accounts, categories, transactions, batches, settings }) {
+  saveToLocalStorage({ accounts, categories, transactions, batches, scenarios = [], scenario_items = [], settings }) {
     localStorage.setItem("lumen_accounts", JSON.stringify(accounts));
     localStorage.setItem("lumen_categories", JSON.stringify(categories));
     localStorage.setItem("lumen_transactions", JSON.stringify(transactions));
     localStorage.setItem("lumen_batches", JSON.stringify(batches));
+    localStorage.setItem("lumen_scenarios", JSON.stringify(scenarios));
+    localStorage.setItem("lumen_scenario_items", JSON.stringify(scenario_items));
     if (settings) {
       localStorage.setItem("lumen_settings", JSON.stringify(settings));
     }
@@ -750,6 +783,8 @@ class Storage {
     localStorage.setItem("lumen_categories", JSON.stringify(DEFAULT_CATEGORIES));
     localStorage.setItem("lumen_transactions", JSON.stringify(DEFAULT_TRANSACTIONS));
     localStorage.setItem("lumen_batches", JSON.stringify([]));
+    localStorage.setItem("lumen_scenarios", JSON.stringify([]));
+    localStorage.setItem("lumen_scenario_items", JSON.stringify([]));
     localStorage.setItem("lumen_settings", JSON.stringify({ couple_names: "Paula & Alcides" }));
   }
 

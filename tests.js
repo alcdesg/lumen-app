@@ -451,6 +451,57 @@ test("LumenApp - soft-delete and restoreTransaction logic", async () => {
   expect(restored.version).toBe(3); // v1 (created) -> v2 (deleted) -> v3 (restored)
 });
 
+// 6. Feature Cenários (Isolamento, Ponte 1 e Ponte 2)
+test("Cenários - Criação, Custo Líquido e Isolamento de Caixa", async () => {
+  const mockStorage = new MockStorage();
+  const app = new LumenApp(mockStorage);
+  await app.init();
+  app.userRole = 'admin';
+
+  // 1. Criar cenário
+  const sc = await app.addScenario({ name: "Reforma Apartamento", description: "Projeto hipotético sala" });
+  expect(sc.name).toBe("Reforma Apartamento");
+
+  // 2. Adicionar 1 receita e 1 despesa
+  const item1 = await app.addScenarioItem({ scenario_id: sc.id, type: 'expense', amount: 5000, description: 'Piso', date: '2026-10-01' });
+  const item2 = await app.addScenarioItem({ scenario_id: sc.id, type: 'income', amount: 2000, description: 'Venda móvel antigo', date: '2026-10-05' });
+
+  // 3. Resultado Líquido = Receita (2000) - Despesa (5000) = -3000
+  const totals = app.calculateScenarioTotal(sc.id);
+  expect(totals.netTotal).toBe(-3000);
+  expect(totals.incomeTotal).toBe(2000);
+  expect(totals.expenseTotal).toBe(5000);
+
+  // 4. Regra de Ouro: transações operacionais do app devem permanecer 0
+  expect(app.transactions.length).toBe(0);
+});
+
+test("Cenários - Ponte 2: Promoção com Regra de Data e Snapshot Congelado", async () => {
+  const mockStorage = new MockStorage();
+  const app = new LumenApp(mockStorage);
+  await app.init();
+  app.userRole = 'admin';
+
+  // Criar conta e categoria operacionais
+  app.accounts.push(new Account({ id: 'acc-1', name: 'Conta Corrente', initial_balance: 10000 }));
+  app.categories.push(new Category({ id: 'cat-1', name: 'Reformas', type: 'expense' }));
+
+  const sc = await app.addScenario({ name: "Projeto Viagem" });
+  const futureItem = await app.addScenarioItem({ scenario_id: sc.id, type: 'expense', amount: 1500, description: 'Passagem Aérea', date: '2029-12-01', account_id: 'acc-1', category_id: 'cat-1' });
+
+  // Promover item futuro -> deve criar transação 'planned' (Previsto)
+  const result = await app.promoteScenarioItem(futureItem.id);
+  expect(result.transaction.status).toBe('planned');
+  expect(result.transaction.amount).toBe(-1500);
+  expect(futureItem.status).toBe('materialized');
+  expect(futureItem.valor_orcado).toBe(1500);
+  expect(futureItem.data_orcada).toBe('2029-12-01');
+
+  // Alterar transação operacional promovida não deve afetar o valor congelado do item de cenário
+  result.transaction.amount = -2000;
+  expect(futureItem.valor_orcado).toBe(1500);
+});
+
 
 // --- Execution Logic ---
 async function runTests() {
