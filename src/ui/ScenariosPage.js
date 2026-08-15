@@ -307,22 +307,22 @@ class ScenariosPage {
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-            <div style="text-align: right;">
+          <div class="jux-metrics-container">
+            <div class="jux-metric-item" style="text-align: right;">
               <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Caixa Real Projetado (${formattedTargetDate})</span>
               <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">${formattedProjectedCash}</div>
             </div>
 
-            <span style="font-size: 18px; color: var(--text-muted); font-weight: 300;">${jux.scenarioNetTotal >= 0 ? '+' : '−'}</span>
+            <span class="jux-operator" style="font-size: 18px; color: var(--text-muted); font-weight: 300;">${jux.scenarioNetTotal >= 0 ? '+' : '−'}</span>
 
-            <div style="text-align: right;">
+            <div class="jux-metric-item" style="text-align: right;">
               <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Resultado Líquido do Cenário</span>
               <div style="font-size: 14px; font-weight: 700; color: ${jux.scenarioNetTotal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'};">${formattedScenarioNet}</div>
             </div>
 
-            <span style="font-size: 18px; color: var(--text-muted); font-weight: 300;">=</span>
+            <span class="jux-operator" style="font-size: 18px; color: var(--text-muted); font-weight: 300;">=</span>
 
-            <div style="text-align: right; background: var(--bg-card); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div class="jux-metric-item jux-hypothetical-card" style="text-align: right; background: var(--bg-card); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
               <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Resultado Hipotético Final</span>
               <div style="font-size: 16px; font-weight: 800; color: ${hypColor};">${formattedHypothetical}</div>
             </div>
@@ -346,13 +346,13 @@ class ScenariosPage {
                 const hypColor = t.hypotheticalBalance >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
                 return `
-                  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; background: var(--bg-card); border: 1px solid ${t.isAlert ? 'var(--color-expense)' : 'var(--border-color)'}; padding: 10px 14px; border-radius: 8px; font-size: 12px;">
+                  <div class="scenario-timeline-row" style="border-color: ${t.isAlert ? 'var(--color-expense)' : 'var(--border-color)'};">
                     <div style="display: flex; align-items: center; gap: 10px;">
                       <span style="font-weight: 700; color: var(--text-main); font-family: monospace;">📅 ${dateFmt}</span>
                       <span style="color: var(--text-muted); font-size: 11px;">(${t.items.length} item(ns): <strong>${t.items.map(i => this.escapeHtml(i.description)).join(', ')}</strong>)</span>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; flex-wrap: wrap;">
+                    <div class="scenario-timeline-details">
                       <div>
                         <span style="color: var(--text-muted); font-size: 10px;">Caixa Real no dia:</span>
                         <strong style="color: var(--text-main); margin-left: 4px;">${realFmt}</strong>
@@ -361,7 +361,7 @@ class ScenariosPage {
                         <span style="color: var(--text-muted); font-size: 10px;">Custo/Receita do dia:</span>
                         <strong style="color: ${t.dayNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}; margin-left: 4px;">${dayNetFmt}</strong>
                       </div>
-                      <div style="background: var(--bg-sidebar); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                      <div class="scenario-timeline-result" style="background: var(--bg-sidebar); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
                         <span style="color: var(--text-muted); font-size: 10px; font-weight: 600;">Saldo Resultante:</span>
                         <strong style="color: ${hypColor}; margin-left: 4px; font-weight: 700;">${hypFmt}</strong>
                       </div>
@@ -498,7 +498,7 @@ class ScenariosPage {
           <form id="form-scenario-item">
             <input type="hidden" id="item-id" value="">
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-row-2col">
               <div class="form-group">
                 <label for="item-type" style="font-size: 12px; font-weight: 600;">Tipo *</label>
                 <select id="item-type" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
@@ -518,7 +518,7 @@ class ScenariosPage {
               <input type="text" id="item-description" placeholder="Ex.: Piso porcelanato sala, Venda carro usado" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-row-2col">
               <div class="form-group">
                 <label for="item-date" style="font-size: 12px; font-weight: 600;">Data Estimada * (Regra §4.2)</label>
                 <input type="date" id="item-date" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
@@ -534,7 +534,7 @@ class ScenariosPage {
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div class="form-row-2col">
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <label for="item-category" style="font-size: 12px; font-weight: 600; margin: 0;">Categoria (Opcional)</label>
@@ -586,7 +586,7 @@ class ScenariosPage {
               <input type="text" id="promote-description" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-row-2col">
               <div class="form-group">
                 <label for="promote-amount" style="font-size: 12px; font-weight: 600;">Valor (R$)</label>
                 <input type="number" id="promote-amount" step="0.01" min="0.01" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">
@@ -598,7 +598,7 @@ class ScenariosPage {
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-row-2col">
               <div class="form-group">
                 <label for="promote-account" style="font-size: 12px; font-weight: 600;">Conta Operacional *</label>
                 <select id="promote-account" required style="width: 100%; padding: 10px; font-size: 13px; background: var(--bg-sidebar); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px;">

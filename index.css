@@ -2469,7 +2469,7 @@ body.light-theme .mockup-header {
 }
 
 /* ==================================================================== */
-/* CENÁRIOS & PROJETOS STYLES                                           */
+/* CENÁRIOS & PROJETOS STYLES (RESPONSIVO MOBILE)                       */
 /* ==================================================================== */
 
 .scenario-card:hover {
@@ -2485,6 +2485,113 @@ body.light-theme .mockup-header {
 .juxtaposition-card:hover {
   box-shadow: 0 6px 20px rgba(110, 68, 255, 0.2);
 }
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.jux-metrics-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.scenario-timeline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.scenario-timeline-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+/* Regras Responsivas para Celular (< 768px) */
+@media (max-width: 768px) {
+  .scenarios-page-container {
+    gap: 16px !important;
+  }
+
+  .scenarios-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .scenario-card {
+    padding: 16px !important;
+  }
+
+  .form-row-2col {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .juxtaposition-card {
+    padding: 14px !important;
+    gap: 14px !important;
+  }
+
+  .jux-metrics-container {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .jux-metric-item {
+    text-align: left !important;
+  }
+
+  .jux-operator {
+    display: none !important;
+  }
+
+  .jux-hypothetical-card {
+    grid-column: 1 / -1 !important;
+    text-align: center !important;
+    margin-top: 4px;
+  }
+
+  .scenario-timeline-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .scenario-timeline-details {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .scenario-timeline-result {
+    grid-column: 1 / -1 !important;
+    text-align: center !important;
+  }
+
+  .modal-card {
+    max-width: 95vw !important;
+    padding: 18px !important;
+  }
+}
+
 
 
 
